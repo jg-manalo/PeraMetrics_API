@@ -1,0 +1,7 @@
+drizzle/
+node_modules/
+.env.development
+.env
+*.log
+dist/
+scripts/
