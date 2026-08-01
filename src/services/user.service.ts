@@ -73,7 +73,9 @@ export const updateUserInfo = async (uuid: string, name?: string, email?: string
         const [updatedUser]: Partial<User>[] = await db.update(users).set({
             name: name || existingUser.name,
             email: email || existingUser.email,
-            password: password ? await hashPassword(password) : existingUser.password
+            password: password ? await hashPassword(password) : existingUser.password,
+            updatedAt: new Date()
+
         }).where(eq(users.uid, uuid)).returning({
             id: users.id,
             uid: users.uid,
@@ -144,6 +146,25 @@ export const removeUser = async (uuid: string): Promise<void> => {
         await db.delete(users).where(eq(users.uid, uuid));
     }catch (error) {
         logger.error(`Error removing user with uuid ${uuid}:`, error);
+        throw error;
+    }
+}
+
+export const updateUserPassword = async (email:string, password: string): Promise<void> => {
+    try{
+        const user = await findUserByEmail(email);
+
+        if(!user){
+            throw new Error('User not found');
+        }
+
+        await db.update(users).set({
+            password: await hashPassword(password),
+            updatedAt: new Date()
+        }).where(eq(users.email, email));
+
+    } catch (error) {
+        logger.error(`Error updating password for user with email ${email}:`, error);
         throw error;
     }
 }
