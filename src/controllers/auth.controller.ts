@@ -10,6 +10,7 @@ import {generateToken} from '../utils/jwt';
 import crypto from 'crypto';
 import redisClient from '../config/redis';
 import { updatePasswordValidation } from '../validations/user.validation';
+import {sendEmail} from '../services/mail.service';
 
 export const registerUser = async (req: Request<User>, res: Response, next: NextFunction): Promise<void | Response> => {
     try{
@@ -96,13 +97,18 @@ export const requestPasswordReset = async (req: Request<Pick<User, 'email'>>, re
             throw new Error("Failed to cache password reset token");
         }
 
-        //TODO: implement email sending logic here to send the token to the user's email address
+        const html = `Hello <b>${user.name}</b>,<br><br>We received a request to reset your password. Please use the following token to reset your password:<br><br>
+        Token: <b>${tokenHash}</b><br><br>
+        This token will expire in <b>3 minutes</b>.<br><br>
+        If you did not request a password reset, please ignore this email.<br><br>
+        Thank you,<br>
+        Perametrics`;
 
-        return res.status(200).json({
-            message: "Password reset token generated successfully",
-            tokenHash: tokenHash,
-            expiration: `${threeMinutesInSeconds} seconds`
+        res.status(200).json({
+            message: "Password reset token generated successfully. Please check your email for the token",
         });
+
+        await sendEmail(user.email, "Password Reset Request", html);
 
     }catch (error){
         if (error instanceof Error) {
