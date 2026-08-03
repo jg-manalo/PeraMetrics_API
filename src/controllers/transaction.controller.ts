@@ -1,22 +1,58 @@
 import type { Transaction } from '../types/transaction';
 import type {Request, Response, NextFunction} from 'express';
 import type { ZodSafeParseResult } from 'zod';
-import {storeExpense, storeIncome, storeTransfer, removeTransaction} from '../services/transaction.service';
+import {storeExpense, storeIncome, storeTransfer, removeTransaction, fetchTransactions} from '../services/transaction.service';
 import {transactionValidation} from '../validations/transaction.validation';
 import { formatValidationError } from '../validations/format';
 import logger from '../config/logger';
 import { MoneySource } from '../types/moneysource';
+import { QueryFilters } from '../types/queryfilters';
 
-type TransactionRequest = Request<Pick<Transaction, 'name' | 'amount' | 'moneySource' | 'uid'>> & {user?: {userUid?: string }};
+type TransactionRequest = Request<Pick<Transaction, 'name' | 'amount' | 'moneySource' | 'uid'>, QueryFilters> & {user?: {userUid?: string }};
 
 interface MoneyInOutPayload {
     transaction: Partial<Transaction> | undefined;
     updatedMoneySource: Partial<MoneySource> | undefined;
 }
 
-
 interface TransferPayload extends MoneyInOutPayload {
     updatedDestinationMoneySource: Partial<MoneySource> | undefined;
+}
+
+export const getTransactions = async (req: TransactionRequest, res: Response, next: NextFunction): Promise<void | Response> => {
+    try{
+        const userUid: string | undefined = req.user?.userUid;
+
+        if (!userUid) {
+            return res.status(404).json({
+                message: "Requesting user not found"
+            });
+        }
+
+        const filters: QueryFilters = req.query;
+        const transactions = await fetchTransactions(userUid, filters);
+
+        return res.status(200).json({
+            message: "Transactions fetched successfully",
+            data: transactions
+        });
+        
+    }catch (error) {
+        logger.error(`Error fetching transactions: ${error}`);
+       
+        if (error instanceof Error && error.message === 'No transactions history found') {
+            return res.status(404).json({
+                message: error.message
+            });
+        }
+
+        if (error instanceof Error ){
+            return res.status(500).json({
+                message: error.message
+            });
+        }
+        next(error);
+    }
 }
 
 export const transactIncome = async (req: TransactionRequest, res: Response, next: NextFunction): Promise<void | Response> => {

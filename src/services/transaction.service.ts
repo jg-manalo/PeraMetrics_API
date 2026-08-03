@@ -4,6 +4,39 @@ import {transactions} from '../models/transactions';
 import logger from '../config/logger';
 import {eq, and} from 'drizzle-orm';
 import {getMoneySourceBalance, updateMoneySourceBalance} from './moneysource.service';
+import type { QueryFilters } from '../types/queryfilters';
+
+export const fetchTransactions = async (userUid: string, filters: QueryFilters) => {
+    try{
+
+        const page: number = filters.page ?? 1;
+        const order: 'asc' | 'desc' = filters.orderBy ?? 'desc';
+        const pageLimit: number = 10;
+        const offset: number = (page - 1) * pageLimit;
+        const categoryFilter: 'INCOME' | 'EXPENSE' | 'TRANSFER' | undefined = filters.category;
+
+        const results = await db.query.transactions.findMany({
+            where: {
+                user: userUid,
+                category: categoryFilter ? categoryFilter : undefined
+            },
+            orderBy: {
+                createdAt: order
+            },
+            limit: pageLimit,
+            offset: offset
+    
+        });
+    
+        if (!results){
+            throw new Error('No transactions history found');
+        }
+        return results;
+    } catch (error) {
+        logger.error(`Error fetching transactions for user ${userUid}: ${error}`);
+        throw error;
+    }
+}
 
 export const storeIncome = async (userUid: string, name: string, amount: string, moneySource: string) => {
     try{
