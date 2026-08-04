@@ -1,38 +1,49 @@
 import type {Request, Response, NextFunction} from 'express';
 import jwt from 'jsonwebtoken';
 import logger from '../config/logger';
+import type { AuthTokenPayload } from '../types/api';
 
-export type AuthTokenPayload = jwt.JwtPayload & {
-    userUid?: string;
+const isAuthTokenPayload = (payload : string | jwt.JwtPayload) : payload is AuthTokenPayload => {
+    return typeof payload === 'object' && !!payload && 'userUid' in payload;
 };
 
-export type AuthenticatedRequest = Request & {user?: AuthTokenPayload};
-
-export const verifyToken = (req: AuthenticatedRequest, res: Response, next: NextFunction): Response | void => {
+export const verifyToken = (req: Request & {user: AuthTokenPayload}, res: Response, next: NextFunction): void => {
     const token = req.headers['authorization']?.split(' ')[1];
 
     if (!token) {
-        return res.status(401).json({
-            message: "Access denied. No token provided."
+        res.status(401).json({
+            message: 'Access denied. No token provided'
         });
+        return;
     }
 
     try{
         const decoded = jwt.verify(token, process.env.JWT_SECRET!);
 
-        if (!decoded || typeof decoded !== 'object' || !('userUid' in decoded)) {
-            return res.status(400).json({
-                message: "Invalid token."
+        if (!isAuthTokenPayload(decoded)) {
+            res.status(404).json({
+                message: 'Token contains invalid payload'
             });
+            return;
         }
+
         req.user = decoded;
         
         next();
     } catch (error) {
         logger.error(`Token verification failed: ${error}`);
 
-        return res.status(400).json({
-            message: "Invalid token."
+        if (error instanceof jwt.JsonWebTokenError) {
+            res.status(401).json({
+                message: `Verification failed: ${error.message}`
+            });
+            return;
+        } 
+        
+        res.status(500).json({
+            message: 'Internal server error during token verification'
         });
+
+        return;
     }
 };

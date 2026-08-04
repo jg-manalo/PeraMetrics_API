@@ -1,4 +1,4 @@
-import type {UserResource} from '../types/userresource';
+import type {UserResource} from '../types/resources';
 
 export const userResource = (user: UserResource | undefined) : UserResource | undefined => {
    

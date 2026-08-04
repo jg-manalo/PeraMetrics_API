@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import {getMoneySourceByUuid} from '../services/moneysource.service';
 
-type UserRequest = Request<{uid: string}> & {user?: {userUid?: string }};
+type UserRequest = Request<{uid: string}, {}, {}> & {user?: {userUid?: string }};
 
 export const checkAuthorizationForUserCredentials = (req: UserRequest, res: Response, next: NextFunction): Response | void => {
     const {uid} : {uid: string | undefined} = req.params;

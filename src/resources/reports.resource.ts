@@ -1,15 +1,9 @@
 import type {Transaction} from '../types/transaction';
+import type {TransactionReportResource} from '../types/resources';
 
-export type TransactionReport = Transaction & {source: {name: string} | null, transferTo?: {name: string} | null};
+export type TransactionReportLazyLoad = Transaction & {source: {name: string} | null, transferTo?: {name: string} | null};
 
-type ReportSummary = {
-    totalIncome: number;
-    totalExpenses: number;
-    savings: number;
-    transactions: Partial<Transaction>[];
-}
-
-export const reportResource = (report: TransactionReport[]) : ReportSummary => {
+export const reportResource = (report: TransactionReportLazyLoad[]) : TransactionReportResource => {
 
     const totalIncome: number = report
         .filter(txn => txn.category === 'INCOME')
@@ -31,7 +25,7 @@ export const reportResource = (report: TransactionReport[]) : ReportSummary => {
             amount: txn.amount.toString(),
             category: txn.category,
             origin: txn.source?.name,
-            destination: txn.transferTo?.name,
+            destination: txn.transferTo?.name ?? null,
         })),
     }
 }

@@ -4,7 +4,7 @@ import {eq} from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import type {User} from '../types/user';
 import {userResource} from '../resources/user.resource';
-import type {UserResource} from '../types/userresource';
+import type {UserResource} from '../types/resources';
 import logger from '../config/logger';
 
 export const hashPassword = async (password: string): Promise<string> => {
