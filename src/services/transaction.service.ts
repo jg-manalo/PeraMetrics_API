@@ -5,15 +5,16 @@ import logger from '../config/logger';
 import {eq, and} from 'drizzle-orm';
 import {getMoneySourceBalance, updateMoneySourceBalance} from './moneysource.service';
 import type { QueryFilters } from '../types/queryfilters';
+import type {TransactionReport} from '../resources/reports.resource';
 
-export const fetchTransactions = async (userUid: string, filters: QueryFilters) => {
+export const fetchTransactions = async (userUid: string, filters: QueryFilters): Promise<Transaction[]> => {
     try{
 
         const page: number = filters.page ?? 1;
         const order: 'asc' | 'desc' = filters.orderBy ?? 'desc';
         const pageLimit: number = 10;
         const offset: number = (page - 1) * pageLimit;
-        const categoryFilter: 'INCOME' | 'EXPENSE' | 'TRANSFER' | undefined = filters.category;
+        const categoryFilter: Transaction['category'] | undefined = filters.category;
 
         const results = await db.query.transactions.findMany({
             where: {
@@ -38,6 +39,40 @@ export const fetchTransactions = async (userUid: string, filters: QueryFilters) 
     }
 }
 
+export const generateReport = async (userUid: string, startDate: string, endDate: string): Promise<TransactionReport[]> => {
+    const report = await db.query.transactions.findMany({
+        where: {
+            user: userUid,
+            date: {
+                gte: new Date(startDate).toISOString(),
+                lte: new Date(endDate).toISOString()
+            }
+        },
+        orderBy: {
+            date: 'desc'
+        },
+        with: {
+            source: {
+                columns: {
+                    name: true
+                }
+            },
+            transferTo: {
+                columns: {
+                    name: true
+                }
+            }
+        }
+
+    });
+
+    if (!report){
+        throw new Error('No transactions found for the specified period');
+    }
+    
+    return report;
+}
+
 export const storeIncome = async (userUid: string, name: string, amount: string, moneySource: string) => {
     try{
         const result = await db.transaction(async (tx) => {
@@ -46,15 +81,16 @@ export const storeIncome = async (userUid: string, name: string, amount: string,
                 throw new Error('Amount must be greater than zero');
             }
 
-            const [transaction]: Partial<Transaction>[] = await tx.insert(transactions)
+            const [transaction]: Transaction[] = await tx.insert(transactions)
             .values({
                 user: userUid,
                 name: name,
-                amount: amount.toString(),
+                amount: amount,
                 moneySource: moneySource,
                 category: 'INCOME',
                 date: new Date().toISOString()
             }).returning({
+                id: transactions.id,
                 uid: transactions.uid,
                 name: transactions.name,
                 amount: transactions.amount,
@@ -97,15 +133,16 @@ export const storeExpense = async (userUid: string, name: string, amount: string
             }
 
             
-            const [transaction]: Partial<Transaction>[] = await tx.insert(transactions)
+            const [transaction]: Transaction[] = await tx.insert(transactions)
             .values({
                 user: userUid,
                 name: name,
-                amount: amount.toString(),
+                amount: amount,
                 moneySource: moneySource,
                 category: 'EXPENSE',
                 date: new Date().toISOString()
             }).returning({
+                id: transactions.id,
                 uid: transactions.uid,
                 name: transactions.name,
                 amount: transactions.amount,

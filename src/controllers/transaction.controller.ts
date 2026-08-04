@@ -1,14 +1,16 @@
 import type { Transaction } from '../types/transaction';
 import type {Request, Response, NextFunction} from 'express';
 import type { ZodSafeParseResult } from 'zod';
-import {storeExpense, storeIncome, storeTransfer, removeTransaction, fetchTransactions} from '../services/transaction.service';
+import {storeExpense, storeIncome, storeTransfer, removeTransaction, fetchTransactions, generateReport} from '../services/transaction.service';
 import {transactionValidation} from '../validations/transaction.validation';
 import { formatValidationError } from '../validations/format';
 import logger from '../config/logger';
 import { MoneySource } from '../types/moneysource';
 import { QueryFilters } from '../types/queryfilters';
+import {reportResource} from '../resources/reports.resource';
 
-type TransactionRequest = Request<Pick<Transaction, 'name' | 'amount' | 'moneySource' | 'uid'>, QueryFilters> & {user?: {userUid?: string }};
+type TransactionRequest= Request<Pick<Transaction, 'name' | 'amount' | 'moneySource' | 'uid' | 'transferDestination'>, QueryFilters> & {user?: {userUid?: string }};
+
 
 interface MoneyInOutPayload {
     transaction: Partial<Transaction> | undefined;
@@ -55,6 +57,44 @@ export const getTransactions = async (req: TransactionRequest, res: Response, ne
     }
 }
 
+export const generateTimelyReport = async (req: TransactionRequest, res: Response, next: NextFunction): Promise<void | Response> => {
+    try {
+        const userUid: string | undefined = req.user?.userUid;
+
+        if (!userUid) {
+            return res.status(404).json({
+                message: "Requesting user not found"
+            });
+        }
+
+       const {to, from} : QueryFilters = req.query;
+
+        if (!to || !from) {
+            return res.status(400).json({
+                message: "Start date and end date are required"
+            });
+        }
+
+        const report = await generateReport(userUid, from, to);
+
+        return res.status(200).json({
+            message: "Timely report generated successfully",
+            data: reportResource(report)
+        });
+
+    } catch (error) {
+        logger.error(`Error generating timely report: ${error}`);
+
+        if (error instanceof Error && error.message === 'No transactions found for the specified period') {
+            return res.status(404).json({
+                message: error.message
+            });
+        }
+
+        next(error);
+    }
+}
+
 export const transactIncome = async (req: TransactionRequest, res: Response, next: NextFunction): Promise<void | Response> => {
     try{
         const {name, amount, moneySource}: { name: string, amount: string, moneySource: string } = req.body;
@@ -67,7 +107,7 @@ export const transactIncome = async (req: TransactionRequest, res: Response, nex
             });
         }
 
-        const validateTransaction: ZodSafeParseResult<Partial<Transaction>> = transactionValidation.safeParse(req.body);
+        const validateTransaction = transactionValidation.safeParse(req.body);
 
         if(!validateTransaction.success){
             return res.status(400).json({
@@ -111,7 +151,7 @@ export const transactExpense = async (req: TransactionRequest, res: Response, ne
             });
         }
 
-        const validateTransaction: ZodSafeParseResult<Partial<Transaction>> = transactionValidation.safeParse(req.body);
+        const validateTransaction = transactionValidation.safeParse(req.body);
 
         if(!validateTransaction.success){
             return res.status(400).json({
@@ -155,7 +195,7 @@ export const transactTransfer = async (req: TransactionRequest, res: Response, n
             });
         }
 
-        const validateTransaction: ZodSafeParseResult<Partial<Transaction>> = transactionValidation.safeParse(req.body);
+        const validateTransaction = transactionValidation.safeParse(req.body);
 
         if(!validateTransaction.success){
             return res.status(400).json({
