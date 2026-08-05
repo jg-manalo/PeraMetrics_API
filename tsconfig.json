@@ -8,7 +8,8 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
   },
+  "include": ["**/*.ts", "**/*.d.ts"],
   "exclude": ["dist"]
 }

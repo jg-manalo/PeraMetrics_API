@@ -5,6 +5,7 @@ import type {User} from '../types/user';
 import type {MoneySource} from '../types/moneysource';
 import logger from '../config/logger';
 import type {DatabaseTransaction} from '../types/databasetransaction';
+import {NotFoundError, DuplicateError, ForbiddenError} from '../errors/errors';
 
 export const generateMoneySource = async (name: string, userUid: User['uid'], initialAmount?: number): Promise<Partial<MoneySource> | undefined> => {
     try{
@@ -18,7 +19,7 @@ export const generateMoneySource = async (name: string, userUid: User['uid'], in
         });
      
         if(existingSource){
-            throw new Error('Money source with this name already exists');
+            throw new DuplicateError('Money source with this name already exists');
         }
         
         const [newSource]: Partial<MoneySource>[] = await db.insert(moneySources).values({
@@ -51,7 +52,7 @@ export const getMoneySourceByUuid = async (uid: string, userUid: User['uid']) =>
         });
 
         if (!moneySource) {
-            throw new Error('Money source not found');
+            throw new NotFoundError('Money source not found');
         }
         
         return moneySource;
@@ -61,6 +62,7 @@ export const getMoneySourceByUuid = async (uid: string, userUid: User['uid']) =>
     }
 }
 
+//TODO: separate the logic of checking the authorization of the user
 export const editMoneySourceName = async (uid: string, newName: string, userUid: User['uid']): Promise<Partial<MoneySource> | undefined> => {
     try{    
         const sourceName = newName.trim().toUpperCase();
@@ -72,7 +74,7 @@ export const editMoneySourceName = async (uid: string, newName: string, userUid:
         });
 
         if (!unauthorizedUser) {
-            throw new Error('You are not authorized to edit this money source');
+            throw new ForbiddenError('You are not authorized to edit this money source');
         }
 
 
@@ -103,6 +105,8 @@ export const editMoneySourceName = async (uid: string, newName: string, userUid:
     }
 }
 
+
+//TODO: separate the logic of checking the authorization of the user
 export const removeMoneySource = async (uid: string, userUid: User['uid']): Promise<Partial<MoneySource> | undefined> => {
     try {
 
@@ -114,7 +118,7 @@ export const removeMoneySource = async (uid: string, userUid: User['uid']): Prom
         });
 
         if (!toBeDeleted) {
-            throw new Error('Money source not found');
+            throw new NotFoundError('Money source not found');
         }
 
         const unauthorizedUser: MoneySource | undefined = await db.query.moneySources.findFirst({
@@ -125,7 +129,7 @@ export const removeMoneySource = async (uid: string, userUid: User['uid']): Prom
         });
 
         if (!unauthorizedUser) {
-            throw new Error('You are not authorized to delete this money source');
+            throw new ForbiddenError('You are not authorized to delete this money source');
         }
 
 
@@ -153,7 +157,7 @@ export const getMoneySourceBalance = async (userUid: string, moneySourceUid: str
         });
 
         if (!moneySource) {
-            throw new Error('Money source not found');
+            throw new NotFoundError('Money source not found');
         }
 
         return moneySource.amount;
@@ -166,8 +170,9 @@ export const getMoneySourceBalance = async (userUid: string, moneySourceUid: str
 export const updateMoneySourceBalance = async (tx: DatabaseTransaction, userUid: string, moneySource: string, amount: string, operation: 'add' | 'subtract'): Promise<Partial<MoneySource> | undefined> => {
     try{
         const source = await getMoneySourceBalance(userUid, moneySource);
+
         if (!source) {
-            throw new Error('Money source not found');
+            throw new NotFoundError('Money source not found');
         }
 
         let totalAmount: number;

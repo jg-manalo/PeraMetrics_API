@@ -2,12 +2,13 @@ import type {Request, Response, NextFunction} from 'express';
 import jwt from 'jsonwebtoken';
 import logger from '../config/logger';
 import type { AuthTokenPayload } from '../types/api';
+import type {AuthenticatedRequest} from '../types/api';
 
 const isAuthTokenPayload = (payload : string | jwt.JwtPayload) : payload is AuthTokenPayload => {
     return typeof payload === 'object' && !!payload && 'userUid' in payload;
 };
 
-export const verifyToken = (req: Request & {user: AuthTokenPayload}, res: Response, next: NextFunction): void => {
+export const verifyToken = (req: Request, res: Response, next: NextFunction): void => {
     const token = req.headers['authorization']?.split(' ')[1];
 
     if (!token) {

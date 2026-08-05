@@ -7,6 +7,7 @@ import moneysourceRoutes from './routes/moneysource.route'
 import transactionRoutes from './routes/transaction.route'
 import limiter from './middlewares/limiter';
 import {connectRedis} from './config/redis';
+import {errorHandler} from './middlewares/error.handler';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
@@ -29,3 +30,5 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/moneysources', moneysourceRoutes);
 app.use('/api/transactions', transactionRoutes);
+
+app.use(errorHandler);

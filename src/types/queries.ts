@@ -1,6 +1,6 @@
 import type {Transaction} from './transaction';
 
-export interface QueryFilters {
+export type TransactionQuery = {
     page?: number;
     orderBy? : 'asc' | 'desc';
     category?: Transaction['category'];
