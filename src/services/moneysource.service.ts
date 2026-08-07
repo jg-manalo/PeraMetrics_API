@@ -42,12 +42,11 @@ export const generateMoneySource = async (name: string, userUid: User['uid'], in
     }
 }
 
-export const getMoneySourceByUuid = async (uid: string, userUid: User['uid']) => {
+export const getMoneySourceByUuid = async (uid: string) => {
     try{
         const moneySource = await db.query.moneySources.findFirst({
             where: {
                 uid: uid,
-                user: userUid
             }
         });
 
@@ -62,31 +61,23 @@ export const getMoneySourceByUuid = async (uid: string, userUid: User['uid']) =>
     }
 }
 
-//TODO: separate the logic of checking the authorization of the user
 export const editMoneySourceName = async (uid: string, newName: string, userUid: User['uid']): Promise<Partial<MoneySource> | undefined> => {
-    try{    
-        const sourceName = newName.trim().toUpperCase();
-        const unauthorizedUser: MoneySource | undefined = await db.query.moneySources.findFirst({
-            where: {
-                uid: uid,
-                user: userUid
-            }
-        });
+    try{
 
-        if (!unauthorizedUser) {
+        const sourceName = newName.trim().toUpperCase();
+       
+        const moneySource  = await getMoneySourceByUuid(uid);
+
+        const unauthorizedUser = moneySource.user !== userUid;
+
+        if (unauthorizedUser) {
             throw new ForbiddenError('You are not authorized to edit this money source');
         }
 
-
-        const existingSource: MoneySource | undefined = await db.query.moneySources.findFirst({
-            where: {
-                name: sourceName,
-                user: userUid
-            }
-        });
+        const existingSource = moneySource.name.toUpperCase() === sourceName;
 
         if(existingSource){
-            throw new Error('Money source with this name already exists');
+            throw new DuplicateError('Money source with this name already exists');
         }
         
         const [updatedSource]: Partial<MoneySource>[] = await db.update(moneySources).set({
@@ -105,33 +96,14 @@ export const editMoneySourceName = async (uid: string, newName: string, userUid:
     }
 }
 
-
-//TODO: separate the logic of checking the authorization of the user
 export const removeMoneySource = async (uid: string, userUid: User['uid']): Promise<Partial<MoneySource> | undefined> => {
     try {
 
-        const toBeDeleted: MoneySource | undefined = await db.query.moneySources.findFirst({
-            where: {
-                uid: uid,
-                user: userUid
-            }
-        });
+        const moneySourceToBeDeleted = await getMoneySourceByUuid(uid);
 
-        if (!toBeDeleted) {
-            throw new NotFoundError('Money source not found');
-        }
-
-        const unauthorizedUser: MoneySource | undefined = await db.query.moneySources.findFirst({
-            where: {
-                uid: uid,
-                user: userUid
-            }
-        });
-
-        if (!unauthorizedUser) {
+        if (moneySourceToBeDeleted.user !== userUid) {
             throw new ForbiddenError('You are not authorized to delete this money source');
         }
-
 
         const [deletedSource] : Partial<MoneySource>[] = await db.delete(moneySources).where(and(eq(moneySources.uid, uid), eq(moneySources.user, userUid))).returning({
             name: moneySources.name,
@@ -147,42 +119,19 @@ export const removeMoneySource = async (uid: string, userUid: User['uid']): Prom
     }
 }
 
-export const getMoneySourceBalance = async (userUid: string, moneySourceUid: string): Promise<string | undefined> => {
-    try{
-        const moneySource: Partial<MoneySource> | undefined = await db.query.moneySources.findFirst({
-            where: {
-                uid: moneySourceUid,
-                user: userUid
-            }
-        });
-
-        if (!moneySource) {
-            throw new NotFoundError('Money source not found');
-        }
-
-        return moneySource.amount;
-    }catch (error) {
-        logger.error(`Error finding money source: ${error}`);
-        throw error;
-    }
-}
 
 export const updateMoneySourceBalance = async (tx: DatabaseTransaction, userUid: string, moneySource: string, amount: string, operation: 'add' | 'subtract'): Promise<Partial<MoneySource> | undefined> => {
     try{
-        const source = await getMoneySourceBalance(userUid, moneySource);
-
-        if (!source) {
-            throw new NotFoundError('Money source not found');
-        }
+        const source = await getMoneySourceByUuid(moneySource);
 
         let totalAmount: number;
 
         switch (operation) {
             case 'add':
-                totalAmount = parseFloat(source) + parseFloat(amount);
+                totalAmount = parseFloat(source.amount) + parseFloat(amount);
                 break;
             case 'subtract':
-                totalAmount = parseFloat(source) - parseFloat(amount);
+                totalAmount = parseFloat(source.amount) - parseFloat(amount);
                 break;
             default:
                 throw new Error('Invalid operation');

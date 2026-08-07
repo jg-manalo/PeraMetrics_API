@@ -56,4 +56,12 @@ class DuplicateError extends AppError {
     }
 }
 
-export {ValidationError, NotFoundError, ForbiddenError, UnauthorizedError, ValueError, DuplicateError};
+class BadRequestError extends AppError {
+    name: string
+    constructor(message: string) {
+        super(400, message);
+        this.name = 'BadRequestError';
+    }
+}
+
+export {ValidationError, NotFoundError, ForbiddenError, UnauthorizedError, ValueError, DuplicateError, BadRequestError};

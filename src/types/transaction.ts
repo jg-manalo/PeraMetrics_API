@@ -1,3 +1,5 @@
+import type { MoneySource } from "./moneysource";
+
 export type Transaction = {
     id: number;
     uid: string;
@@ -10,3 +12,13 @@ export type Transaction = {
     createdAt?: Date;
     updatedAt?: Date;
 };
+
+export type MoneyInOutPayload = {
+    transaction: Partial<Transaction> | undefined;
+    updatedMoneySource: Partial<MoneySource> | undefined;
+}
+
+export type TransactionTransferPayload = Pick<MoneyInOutPayload, 'updatedMoneySource'> & {
+    transaction: Partial<Transaction> | undefined;
+    updatedDestinationMoneySource: Partial<MoneySource> | undefined;
+}

@@ -1,12 +1,13 @@
 import {db} from '../config/database';
 import {transactions} from '../models/transactions';
 import {eq, and} from 'drizzle-orm';
-import {getMoneySourceBalance, updateMoneySourceBalance} from './moneysource.service';
+import {updateMoneySourceBalance, getMoneySourceByUuid} from './moneysource.service';
 import {NotFoundError, ValueError} from '../errors/errors';
 import type { Transaction } from '../types/transaction';
-import type {MoneySource} from '../types/moneysource';
+import type {MoneyInOutPayload, TransactionTransferPayload} from '../types/transaction';
 import type { TransactionQuery } from '../types/queries';
 import logger from '../config/logger';
+import { MoneySource } from '../types/moneysource';
 
 type TransactionReport = Transaction & {
     source: {
@@ -16,16 +17,6 @@ type TransactionReport = Transaction & {
     transferTo: {
         name: string;
     } | null;
-}
-
-type TransactionInOutManipulation = {
-    transaction: Transaction | undefined;
-    updatedMoneySource: Partial<MoneySource> | undefined;
-}
-
-type TransactionTransferManipulation = Pick<TransactionInOutManipulation, 'updatedMoneySource'> & {
-    transaction: Partial<Transaction> | undefined;
-    updatedDestinationMoneySource: Partial<MoneySource> | undefined;
 }
 
 export const fetchTransactions = async (userUid: string, filters: TransactionQuery): Promise<Transaction[]> => {
@@ -96,7 +87,7 @@ export const generateReport = async (userUid: string, startDate: string, endDate
     }
 }
 
-export const storeIncome = async (userUid: string, name: string, amount: string, moneySource: string): Promise<TransactionInOutManipulation> => {
+export const storeIncome = async (userUid: string, name: string, amount: string, moneySource: string): Promise<MoneyInOutPayload> => {
     try{
         const result = await db.transaction(async (tx) => {
             
@@ -134,15 +125,11 @@ export const storeIncome = async (userUid: string, name: string, amount: string,
     }
 }
 
-export const storeExpense = async (userUid: string, name: string, amount: string, moneySource: string): Promise<TransactionInOutManipulation> => {
+export const storeExpense = async (userUid: string, name: string, amount: string, moneySource: string): Promise<MoneyInOutPayload> => {
     try{
         const result = await db.transaction(async (tx) => {
 
-            const currentBalance = await getMoneySourceBalance(userUid, moneySource);
-            
-            if (!currentBalance) {
-                throw new NotFoundError('Money source not found');
-            }
+            const currentBalance = (await getMoneySourceByUuid(moneySource)).amount;
             
             ensuresAmountIsPositive(amount);
             ensuresItIsAfford(currentBalance, amount);
@@ -167,7 +154,6 @@ export const storeExpense = async (userUid: string, name: string, amount: string
                 moneySource: transactions.moneySource
             });
 
-
             return {
                 transaction,
                 updatedMoneySource
@@ -182,24 +168,29 @@ export const storeExpense = async (userUid: string, name: string, amount: string
     }
 }
 
-export const storeTransfer = async (userUid: string, name: string, amount: string, originMoneySource: string, destinationMoneySource: string | undefined | null): Promise<TransactionTransferManipulation> => {
+export const storeTransfer = async (userUid: string, name: string, amount: string, originMoneySource: string, destinationMoneySource: string | undefined | null): Promise<TransactionTransferPayload> => {
     try{
         const result = await db.transaction(async (tx) => {
         
-            const originBalance = await getMoneySourceBalance(userUid, originMoneySource);
-
+            const originBalance = (await getMoneySourceByUuid(originMoneySource)).amount;
+            
             if (!destinationMoneySource) {
                 throw new NotFoundError('Transfer destination not found');
             }
             
-            if (originBalance) {
+            const destinationBalance = (await getMoneySourceByUuid(destinationMoneySource)).amount;
+            
+            let updatedMoneySource: Partial<MoneySource> | undefined;
+            let updatedDestinationMoneySource: Partial<MoneySource> | undefined;
+            
+            if (originBalance && destinationBalance) {
                 ensuresItIsAfford(originBalance, amount);
+                ensuresAmountIsPositive(amount);
+
+                updatedMoneySource = await updateMoneySourceBalance(tx, userUid, originMoneySource, amount, 'subtract');
+                updatedDestinationMoneySource = await updateMoneySourceBalance(tx, userUid, destinationMoneySource, amount, 'add');
             }
             
-            ensuresAmountIsPositive(amount);
-
-            await getMoneySourceBalance(userUid, destinationMoneySource);
-           
             const [transaction]: Partial<Transaction>[] = await tx.insert(transactions)
             .values({
                 user: userUid,
@@ -218,9 +209,6 @@ export const storeTransfer = async (userUid: string, name: string, amount: strin
                 moneySource: transactions.moneySource,
                 transferDestination: transactions.transferDestination
             });
-
-            const updatedMoneySource = await updateMoneySourceBalance(tx, userUid, originMoneySource, amount, 'subtract');
-            const updatedDestinationMoneySource = await updateMoneySourceBalance(tx, userUid, destinationMoneySource, amount, 'add');
 
             return {
                 transaction,
@@ -247,41 +235,30 @@ export const removeTransaction = async (userUid: string, transactionUid: string)
 
             switch (existingTransaction.category) {
                 case 'INCOME':
-                    const currentIncomeBalanceExists = await getMoneySourceBalance(userUid, existingTransaction.moneySource);
-                    
-                    if (currentIncomeBalanceExists) {
-                        await updateMoneySourceBalance(tx, userUid, existingTransaction.moneySource, existingTransaction.amount, 'subtract');
-                    }
-                    
+            
+                    await updateMoneySourceBalance(tx, userUid, existingTransaction.moneySource, existingTransaction.amount, 'subtract');
+
                     await tx.delete(transactions).where(and(eq(transactions.uid, transactionUid), eq(transactions.user, userUid)));
                     break;
 
                 case 'EXPENSE':
-                    const currentExpenseBalanceExists = await getMoneySourceBalance(userUid, existingTransaction.moneySource);
+                    await updateMoneySourceBalance(tx, userUid, existingTransaction.moneySource, existingTransaction.amount, 'add');
 
-                    if (currentExpenseBalanceExists) {
-                        await updateMoneySourceBalance(tx, userUid, existingTransaction.moneySource, existingTransaction.amount, 'add');
-                    }
-                    
                     await tx.delete(transactions).where(and(eq(transactions.uid, transactionUid), eq(transactions.user, userUid)));
+            
                     break;
                 
                 case 'TRANSFER':
-                    const currentOriginBalanceExists = await getMoneySourceBalance(userUid, existingTransaction.moneySource);
-                    const currentDestinationBalanceExists = await getMoneySourceBalance(userUid, existingTransaction.transferDestination!);
-             
-                    if (currentOriginBalanceExists && currentDestinationBalanceExists) {
-                        await updateMoneySourceBalance(tx, userUid, existingTransaction.moneySource, existingTransaction.amount, 'add');
-                        await updateMoneySourceBalance(tx, userUid, existingTransaction.transferDestination!, existingTransaction.amount, 'subtract');
-                    }
+
+                    await updateMoneySourceBalance(tx, userUid, existingTransaction.moneySource, existingTransaction.amount, 'add');
+                    await updateMoneySourceBalance(tx, userUid, existingTransaction.transferDestination!, existingTransaction.amount, 'subtract');
 
                     await tx.delete(transactions).where(and(eq(transactions.uid, transactionUid), eq(transactions.user, userUid)));
 
                     break;
                 
                 default:
-                    //TODO: Handle unknown category case, or throw it to the general catch block to be handled by the middleware
-                    throw new Error('Unknown transaction category');
+                    throw new NotFoundError('Unknown transaction category');
             } 
         });
 

@@ -1,129 +1,61 @@
 import {generateMoneySource, editMoneySourceName, removeMoneySource} from '../services/moneysource.service';
-import type {Request, Response, NextFunction} from 'express';
-import {moneysourceValidation} from '../validations/moneysource.validation';
-import { formatValidationError } from '../validations/format';
-import logger from '../config/logger';
-import type { ZodSafeParseResult } from 'zod';
+import type {NextFunction} from 'express';
+import type {AuthenticatedRequest} from '../types/api';
+import type {ParamsDictionary} from 'express-serve-static-core';
+import type {APIResponse} from '../types/api';
+import type {MoneySource} from '../types/moneysource';
 
-type MoneySourceRequest = Request<{name: string, uid: string}> & {user?: {userUid?: string }};
+type MoneySourceRequest<TParams extends ParamsDictionary> = AuthenticatedRequest<TParams, { name: string, initialAmount?: number }, {}>;
 
-export const createMoneySource = async (req: MoneySourceRequest, res: Response, next: NextFunction): Promise<void | Response> => {
+export const createMoneySource = async (req: MoneySourceRequest<{}>, res: APIResponse<Partial<MoneySource> | undefined>, next: NextFunction): Promise<void> => {
     try{
-        const {name, initialAmount}: { name: string, initialAmount?: number } = req.body;
-        const userUid: string | undefined = req.user?.userUid;
-
-        if (!userUid) {
-            return res.status(404).json({
-                message: "Requesting user not found"
-            });
-        }
-
-        const validateMoneySource: ZodSafeParseResult<{ name: string }> = moneysourceValidation.safeParse(req.body);
-
-        if(!validateMoneySource.success){
-            return res.status(400).json({
-                message: "Validation failed",
-                errors: formatValidationError(validateMoneySource.error)
-            });
-        }
+        const {name, initialAmount} = req.body;
+        const userUid = req.user?.userUid;
 
         const newSource = await generateMoneySource(name, userUid, initialAmount);
 
-        return res.status(201).json({
+        res.status(201).json({
             message: "Money source created successfully",
-            source: newSource
+            data: newSource
         });
 
     }catch (error) {
-
-        if (error instanceof Error && error.message === 'Money source with this name already exists') {
-            return res.status(400).json({
-                message: error.message
-            });
-        }
-
         next(error);
     }
 }
 
-export const editMoneySource = async (req: MoneySourceRequest, res: Response, next: NextFunction): Promise<void | Response> => {
+export const editMoneySource = async (req: MoneySourceRequest<{uid: string}>, res: APIResponse<Partial<MoneySource> | undefined>, next: NextFunction): Promise<void> => {
     try{
-        const {uid} : {uid: string} = req.params;
-        const {name} : { name: string } = req.body;
-        const userUid: string | undefined = req.user?.userUid;
-        const validateMoneySource: ZodSafeParseResult<{ name: string }> = moneysourceValidation.safeParse(req.body);
-
-        if (!userUid) {
-            return res.status(404).json({
-                message: "Requesting user not found"
-            });
-        }
-
-        if(!validateMoneySource.success){
-            return res.status(400).json({
-                message: "Validation failed",
-                errors: formatValidationError(validateMoneySource.error)
-            });
-        }
-
+        const {uid}  = req.params;
+        const {name} = req.body;
+        const userUid = req.user.userUid;
+     
         const updatedSource = await editMoneySourceName(uid, name, userUid);
 
-        return res.status(200).json({
+        res.status(200).json({
             message: "Money source updated successfully",
-            source: updatedSource
+            data: updatedSource
         });
 
     } catch (error) {
-
-        logger.error(`Error editing money source: ${error}`);
-
-        if (error instanceof Error && error.message === 'You are not authorized to edit this money source') {
-            return res.status(401).json({
-                message: error.message
-            });
-        }
-
-        if (error instanceof Error && error.message === 'Money source with this name already exists') {
-            return res.status(400).json({
-                message: error.message
-            });
-        }
-
         next(error);
     }
 }
 
-export const deleteMoneySource = async (req: MoneySourceRequest, res: Response, next: NextFunction): Promise<void | Response> => {
+export const deleteMoneySource = async (req: MoneySourceRequest<{uid: string}>, res: APIResponse<Partial<MoneySource> | undefined>, next: NextFunction): Promise<void> => {
     try {
-        const { uid }: { uid: string } = req.params;
-        const userUid: string | undefined = req.user?.userUid;
+        const { uid } = req.params;
+        const userUid = req.user.userUid;
 
-        if (!userUid) {
-            return res.status(404).json({
-                message: "Requesting user not found"
-            });
-        }
 
         const toDelete = await removeMoneySource(uid, userUid);
 
-        return res.status(200).json({
-            message: "Money source deleted successfully",
-            source: toDelete
+        res.status(200).json({
+            message: 'Money source deleted successfully',
+            data: toDelete
         });
 
     }catch (error) {
-        
-        if (error instanceof Error && error.message === 'You are not authorized to delete this money source') {
-            return res.status(401).json({
-                message: error.message
-            });
-        }
-
-        if (error instanceof Error && error.message === 'Money source not found') {
-            return res.status(404).json({
-                message: error.message
-            });
-        }
         next(error);
     }
 }
