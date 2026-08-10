@@ -19,8 +19,26 @@ services:
     networks:
       - perametrics-network
     depends_on:
-      - redis
-    
+      neon-local:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  
+  neon-local:
+    image: neondatabase/neon_local:v1.5
+    container_name: neon-local
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env.development
+    networks:
+      - perametrics-network
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-h', 'localhost', '-p', '5432', '-U', 'neon']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
   redis:
     image: redis:8.8-alpine
     container_name: redis
@@ -33,6 +51,12 @@ services:
     restart: unless-stopped
     networks:
       - perametrics-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
   redisinsight:
     image: redis/redisinsight:3.8
