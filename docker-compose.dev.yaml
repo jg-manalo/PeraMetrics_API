@@ -29,6 +29,10 @@ services:
     container_name: neon-local
     ports:
       - "5432:5432"
+    volumes:
+      # Persist branch metadata per git branch (optional)
+      - ./.neon_local/:/tmp/.neon_local
+      - ./.git/HEAD:/tmp/.git/HEAD:ro,consistent
     env_file:
       - .env.development
     networks:
@@ -38,7 +42,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-      start_period: 10s
+      start_period: 5s
   redis:
     image: redis:8.8-alpine
     container_name: redis
@@ -52,7 +56,7 @@ services:
     networks:
       - perametrics-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a" ,"123123" ,"ping"]
       interval: 5s
       timeout: 3s
       retries: 5
