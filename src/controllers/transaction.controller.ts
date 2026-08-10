@@ -57,7 +57,6 @@ export const transactIncome = async (req: TransactionRequest<{}>, res: APIRespon
 
         const userUid = req.user.userUid;
 
-
         const newIncome = await storeIncome(userUid, name, amount, moneySource);
 
         res.status(201).json({

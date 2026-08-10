@@ -1,10 +1,11 @@
 import {db} from '../config/database';
 import {users} from '../models/users';
 import {eq} from 'drizzle-orm';
-import bcrypt from 'bcrypt';
-import type {User} from '../types/user';
 import {userResource} from '../resources/user.resource';
+import {DuplicateError} from '../errors/errors'
+import type {User} from '../types/user';
 import type {UserResource} from '../types/resources';
+import bcrypt from 'bcrypt';
 import logger from '../config/logger';
 
 export const hashPassword = async (password: string): Promise<string> => {
@@ -24,7 +25,7 @@ export const createUser = async (name: string, email: string, password: string):
         });
 
        if(existingUser){
-            throw new Error('User with this email already exists');
+            throw new DuplicateError('User with this email already exists');
         }
         
         const hashedPassword: string = await hashPassword(password);
@@ -42,6 +43,7 @@ export const createUser = async (name: string, email: string, password: string):
 
         return newUser;
     }catch (error) {
+        logger.error(`Error creating user:`, error);
         throw error;
     }
 }

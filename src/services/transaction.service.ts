@@ -195,7 +195,7 @@ export const storeTransfer = async (userUid: string, name: string, amount: strin
             .values({
                 user: userUid,
                 name: name,
-                amount: amount.toString(),
+                amount: amount,
                 moneySource: originMoneySource,
                 transferDestination: destinationMoneySource,
                 category: 'TRANSFER',

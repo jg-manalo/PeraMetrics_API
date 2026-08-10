@@ -5,9 +5,9 @@ import type {User} from '../types/user';
 import type {MoneySource} from '../types/moneysource';
 import logger from '../config/logger';
 import type {DatabaseTransaction} from '../types/databasetransaction';
-import {NotFoundError, DuplicateError, ForbiddenError} from '../errors/errors';
+import {NotFoundError, DuplicateError, ForbiddenError, ValueError} from '../errors/errors';
 
-export const generateMoneySource = async (name: string, userUid: User['uid'], initialAmount?: number): Promise<Partial<MoneySource> | undefined> => {
+export const generateMoneySource = async (name: string, userUid: User['uid'], initialAmount?: string): Promise<Partial<MoneySource> | undefined> => {
     try{
         const sourceName = name.trim().toUpperCase();
 
@@ -20,6 +20,10 @@ export const generateMoneySource = async (name: string, userUid: User['uid'], in
      
         if(existingSource){
             throw new DuplicateError('Money source with this name already exists');
+        }
+
+        if (initialAmount && parseFloat(initialAmount) < 0) {
+            throw new ValueError('Initial amount cannot be negative');
         }
         
         const [newSource]: Partial<MoneySource>[] = await db.insert(moneySources).values({

@@ -5,7 +5,7 @@ import type {ParamsDictionary} from 'express-serve-static-core';
 import type {APIResponse} from '../types/api';
 import type {MoneySource} from '../types/moneysource';
 
-type MoneySourceRequest<TParams extends ParamsDictionary> = AuthenticatedRequest<TParams, { name: string, initialAmount?: number }, {}>;
+type MoneySourceRequest<TParams extends ParamsDictionary> = AuthenticatedRequest<TParams, { name: string, initialAmount?: string }, {}>;
 
 export const createMoneySource = async (req: MoneySourceRequest<{}>, res: APIResponse<Partial<MoneySource> | undefined>, next: NextFunction): Promise<void> => {
     try{
