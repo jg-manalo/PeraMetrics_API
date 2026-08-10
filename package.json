@@ -4,12 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest",
+    "test:run" : "node --env-file=.env.development ./node_modules/vitest/vitest.mjs run",
     "dev": "tsx watch --env-file=.env.development src/index.ts",
     "build": "tsc",
     "docker-dev-build": "docker-compose -f docker-compose.dev.yaml up --build",
     "docker-dev-down": "docker-compose -f docker-compose.dev.yaml down",
-    "start-dev" : "scripts\\dev.bat",
+    "start-dev": "scripts\\dev.bat",
     "start": "node --env-file=.env.development dist/src/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
@@ -33,9 +34,12 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.0.1",
     "@types/pg": "^8.20.0",
+    "@types/supertest": "^7.2.1",
     "drizzle-kit": "^1.0.0-rc.4",
+    "supertest": "^7.2.2",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
