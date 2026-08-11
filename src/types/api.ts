@@ -3,7 +3,7 @@ import { ParamsDictionary } from 'express-serve-static-core';
 import jwt from 'jsonwebtoken';
 import type {Request} from 'express';
 
-export type APIResponse<T> = Response<{message: string, data?: T} | {errors? : string | string[]}>;
+export type APIResponse<T> = Response<{message: string, data?: T, token?: string} | {errors? : string | string[]}>;
 
 export type AuthTokenPayload = jwt.JwtPayload & {
     userUid: string;

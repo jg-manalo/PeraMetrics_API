@@ -1,21 +1,16 @@
 import type { Request, Response, NextFunction } from 'express';
-import {getMoneySourceByUuid} from '../services/moneysource.service';
+import type {AuthenticatedRequest, APIResponse} from '../types/api';
 
-type UserRequest = Request<{uid: string}, {}, {}> & {user?: {userUid?: string }};
+type UserRequest = AuthenticatedRequest<{uid: string}, {}, {}> 
 
-export const checkAuthorizationForUserCredentials = (req: UserRequest, res: Response, next: NextFunction): Response | void => {
-    const {uid} : {uid: string | undefined} = req.params;
-
-    if (!uid) {
-        return res.status(400).json({
-            message: "Invalid request parameters"
-        });
-    }
+export const checkAuthorizationForUserCredentials = (req: UserRequest, res: APIResponse<void>, next: NextFunction): void => {
+    const {uid}  = req.params;
 
     if(uid !== req.user?.userUid){
-        return res.status(403).json({
+        res.status(403).json({
             message: "Forbidden. You are not authorized to access this resource"
         });
+        return;
     }
 
     next();

@@ -2,7 +2,7 @@ import {db} from '../config/database';
 import {users} from '../models/users';
 import {eq} from 'drizzle-orm';
 import {userResource} from '../resources/user.resource';
-import {DuplicateError} from '../errors/errors'
+import {DuplicateError, NotFoundError} from '../errors/errors'
 import type {User} from '../types/user';
 import type {UserResource} from '../types/resources';
 import bcrypt from 'bcrypt';
@@ -94,7 +94,8 @@ export const updateUserInfo = async (uuid: string, name?: string, email?: string
 }
 
 
-export const findUserByEmail = async (email: string): Promise<User | undefined> => {
+
+export const findUserByEmail = async (email: string): Promise<User> => {
     try{
         const user: User | undefined = await db.query.users.findFirst({
             where: {
@@ -103,7 +104,7 @@ export const findUserByEmail = async (email: string): Promise<User | undefined> 
         });
 
         if(!user){
-            return undefined;
+            throw new NotFoundError('User not found');
         }
 
         return user;
@@ -156,15 +157,13 @@ export const updateUserPassword = async (email:string, password: string): Promis
     try{
         const user = await findUserByEmail(email);
 
-        if(!user){
-            throw new Error('User not found');
+        if (user) {
+            await db.update(users).set({
+                password: await hashPassword(password),
+                updatedAt: new Date()
+            }).where(eq(users.email, email));
         }
-
-        await db.update(users).set({
-            password: await hashPassword(password),
-            updatedAt: new Date()
-        }).where(eq(users.email, email));
-
+        
     } catch (error) {
         logger.error(`Error updating password for user with email ${email}:`, error);
         throw error;

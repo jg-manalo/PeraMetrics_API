@@ -7,7 +7,7 @@ import { db } from '../src/config/database';
 
 let user = {
     name: 'Automated Test User',
-    email: 'test@email.com',
+    email: 'test@resend.dev',
     password: 'password123',
     token: '',
     userUid: ''
@@ -106,7 +106,7 @@ describe('User Registration', () => {
             .post('/api/auth/register')
             .send({
                 name: 'Another Test User 2',
-                email: 'test@email.com',
+                email: user.email,
                 password: 'password123',
             });
     
@@ -126,7 +126,7 @@ describe('User Login', () => {
             });
         
         user.token = response.body.token;
-        user.userUid = response.body.user.uid;
+        user.userUid = response.body.data.uid;
         expect(response.status).toBe(200);
     });
 
@@ -139,7 +139,7 @@ describe('User Login', () => {
             });
         
         snoopyUser.token = response.body.token;
-        snoopyUser.userUid = response.body.user.uid;
+        snoopyUser.userUid = response.body.data.uid;
         expect(response.status).toBe(200);
     });
 
@@ -155,6 +155,7 @@ describe('User Login', () => {
         expect(response.body).toHaveProperty('message', 'Invalid email or password');
     });
 });
+
 
 describe('Money Sources', () => {
     it('should create a new money source', async () => {

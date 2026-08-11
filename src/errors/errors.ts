@@ -64,4 +64,19 @@ class BadRequestError extends AppError {
     }
 }
 
-export {ValidationError, NotFoundError, ForbiddenError, UnauthorizedError, ValueError, DuplicateError, BadRequestError};
+class RedisError extends AppError {
+    name: string
+    constructor(message: string) {
+        super(500, message);
+        this.name = 'RedisError';
+    }
+}
+class GoneError extends AppError {
+    name: string
+    constructor(message: string) {
+        super(410, message);
+        this.name = 'GoneError';
+    }
+}
+
+export {AppError, ValidationError, NotFoundError, ForbiddenError, UnauthorizedError, ValueError, DuplicateError, BadRequestError, RedisError, GoneError};
