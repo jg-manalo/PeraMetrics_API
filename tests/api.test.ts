@@ -4,6 +4,7 @@ import app from '../src/app';
 import { db } from '../src/config/database';
 
 // TODO: to be exported in the future and must reside in the login test file once the test suite is fully structured and organized.
+
 let user = {
     name: 'Automated Test User',
     email: 'test@email.com',
@@ -155,8 +156,6 @@ describe('User Login', () => {
     });
 });
 
-//FIXME: proper typing for the initial amount
-//TODO: add test case for editing money source and error case for doing forbidden edit on another user's money source
 describe('Money Sources', () => {
     it('should create a new money source', async () => {
         const response = await request(app)
@@ -164,7 +163,7 @@ describe('Money Sources', () => {
             .set('Authorization', `Bearer ${user.token}`)
             .send({
                 name: 'Origin Money Source',
-                initialAmount: 1000.00,
+                initialAmount: '1000.00',
             });
 
         money.originSourceUid = response.body.data.uid;
@@ -179,7 +178,7 @@ describe('Money Sources', () => {
             .set('Authorization', `Bearer ${user.token}`)
             .send({
                 name: 'Destination Money Source',
-                initialAmount: 1000.00,
+                initialAmount: '1000.00',
             });
 
         money.destinationSourceUid = response.body.data.uid;
@@ -194,7 +193,7 @@ describe('Money Sources', () => {
             .set('Authorization', `Bearer ${user.token}`)
             .send({
                 name: 'Default Money Source',
-                initialAmount: 0.00,
+                initialAmount: '0.00',
             });
         expect(response.status).toBe(201);
         expect(response.body.data.amount).toBe('0.00');
@@ -206,7 +205,7 @@ describe('Money Sources', () => {
             .set('Authorization', `Bearer ${user.token}`)
             .send({
                 name: 'Negative Money Source',
-                initialAmount: -100.00,
+                initialAmount: '-100.00',
             });
         expect(response.status).toBe(400);
         expect(response.body).toHaveProperty('message', 'Initial amount cannot be negative');
@@ -218,12 +217,38 @@ describe('Money Sources', () => {
             .set('Authorization', `Bearer ${user.token}`)
             .send({
                 name: 'Origin Money Source',
-                initialAmount: 500.00,
+                initialAmount: '500.00',
             });
         expect(response.status).toBe(409);
         expect(response.body).toHaveProperty('message', 'Money source with this name already exists');
     });
 
+    it('should throw an error when trying to create a money source with an empty name', async () => {
+        const response = await request(app)
+            .post('/api/moneysources')
+            .set('Authorization', `Bearer ${user.token}`)
+            .send({
+                name: '',
+                initialAmount: '500.00',
+            });
+        
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty('message', 'Validation failed');
+        expect(response.body).toHaveProperty('errors', ['name: Name is required']);
+    });
+
+    it('should throw a forbidden error when trying to update the name of the money source of another user', async () => {
+        const response = await request(app)
+            .put(`/api/moneysources/${money.originSourceUid}`)
+            .set('Authorization', `Bearer ${snoopyUser.token}`)
+            .send({
+                name: 'Updated Money Source Name',
+            });
+        
+        expect(response.status).toBe(403);
+        expect(response.body).toHaveProperty('message', 'You are not authorized to edit this money source');
+    });
+    
     it('should throw a forbidden error when trying to delete a money source that belongs to another user', async () => {
         const response = await request(app)
             .delete(`/api/moneysources/${money.originSourceUid}`)
@@ -385,7 +410,6 @@ describe('Transfer Transactions', () => {
     });
 });
 
-// TODO: add tests for deleting different types of transactions (income, expense, transfer) and ensure that the money source amounts are updated correctly after deletion.
 describe('Transaction Deletion', () => {
     it('should delete an existing income transaction', async () => {
         const response = await request(app)
@@ -406,7 +430,6 @@ describe('Transaction Deletion', () => {
     });
     //The end goal should be origin money source amount = 1100.00, destination money source amount = 1000.00 after deletion
     
-    // TODO: add test for deleting a transaction that doesn't exist and ensure that the appropriate error is thrown.
     it('should throw an error when trying to delete a transaction that does not exist', async () => {
         const response = await request(app)
             .delete(`/api/transactions/delete/${transaction.transfer}`)
@@ -417,7 +440,7 @@ describe('Transaction Deletion', () => {
     });
 
 });
-//TODO: prepare test for edge cases like deleting a transaction that doesn't exist, or deleting a transaction that belongs to another user, etc.
+
 describe('Transaction Deletion Edge Case', () => {
     
     it('should delete an existing money source', async () => {

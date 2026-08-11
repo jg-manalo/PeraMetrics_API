@@ -29,7 +29,7 @@ export const generateMoneySource = async (name: string, userUid: User['uid'], in
         const [newSource]: Partial<MoneySource>[] = await db.insert(moneySources).values({
             name: sourceName,
             user: userUid,
-            amount: initialAmount? initialAmount.toString() : '0'
+            amount: initialAmount? initialAmount: '0.00'
 
         }).returning({
             id: moneySources.id,
