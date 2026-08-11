@@ -1,5 +1,4 @@
 import {pgTable, uuid, text, serial, decimal, timestamp} from "drizzle-orm/pg-core";
-import {defineRelations} from 'drizzle-orm';
 import {users} from './users'
 
 export const moneySources = pgTable("money_sources", {

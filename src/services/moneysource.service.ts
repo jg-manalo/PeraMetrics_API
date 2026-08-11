@@ -124,8 +124,11 @@ export const removeMoneySource = async (uid: string, userUid: User['uid']): Prom
 }
 
 
-export const updateMoneySourceBalance = async (tx: DatabaseTransaction, userUid: string, moneySource: string, amount: string, operation: 'add' | 'subtract'): Promise<Partial<MoneySource> | undefined> => {
+export const updateMoneySourceBalance = async (tx: DatabaseTransaction, userUid: string, moneySource: string | null, amount: string, operation: 'add' | 'subtract'): Promise<Partial<MoneySource> | undefined> => {
     try{
+        if (!moneySource) {
+            throw new NotFoundError('Money source not found');
+        }
         const source = await getMoneySourceByUuid(moneySource);
 
         let totalAmount: number;

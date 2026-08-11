@@ -10,8 +10,8 @@ export const transactions = pgTable("transactions", {
     name: text('name').notNull(),
     user: uuid('user').notNull().references(() => users.uid, { onDelete: 'cascade' }),
     amount: decimal('amount', { precision: 18, scale: 2 }).notNull(),
-    moneySource: uuid('moneySource').notNull().references(() => moneySources.uid, { onDelete: 'cascade' }),
-    transferDestination: uuid('transferDestination').references(() => moneySources.uid, { onDelete: 'cascade' }),
+    moneySource: uuid('moneySource').references(() => moneySources.uid, { onDelete: 'set null' }),
+    transferDestination: uuid('transferDestination').references(() => moneySources.uid, { onDelete: 'set null' }),
     category: categoryEnum().notNull(),
     createdAt: timestamp('createdAt').notNull().defaultNow(),
     updatedAt: timestamp('updatedAt').notNull().defaultNow()

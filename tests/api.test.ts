@@ -12,11 +12,24 @@ let user = {
     userUid: ''
 }
 
+let snoopyUser = {
+    name: 'Snoopy Test User',
+    email: 'snoopdogg@email.com',
+    password: 'password123',
+    token: '',
+    userUid: ''
+}
+
 let money = {
     originSourceUid: '',
     destinationSourceUid: ''
 }
 
+let transaction = {
+    'income' : '',
+    'expense' : '',
+    'transfer' : '' 
+};
 
 beforeAll(async () => {
     await db.execute('TRUNCATE TABLE users RESTART IDENTITY CASCADE;');
@@ -31,6 +44,17 @@ describe('User Registration', () => {
                 name: user.name,
                 email: user.email,
                 password: user.password,
+            });
+        expect(response.status).toBe(201);
+    });
+
+    it('should create a new snoopy user', async () => {
+        const response = await request(app)
+            .post('/api/auth/register')
+            .send({
+                name: snoopyUser.name,
+                email: snoopyUser.email,
+                password: snoopyUser.password,
             });
         expect(response.status).toBe(201);
     });
@@ -76,7 +100,6 @@ describe('User Registration', () => {
         
     });
 
-    //TODO: uncommment this only when user service is fixed to throw DuplicateError instead of generic Error
     it('should error when trying to create a user with an existing email', async () => {
         const response = await request(app)
             .post('/api/auth/register')
@@ -106,6 +129,19 @@ describe('User Login', () => {
         expect(response.status).toBe(200);
     });
 
+    it('should login the snoopy user', async () => {
+        const response = await request(app)
+            .post('/api/auth/login')
+            .send({
+                email: snoopyUser.email,
+                password: snoopyUser.password,
+            });
+        
+        snoopyUser.token = response.body.token;
+        snoopyUser.userUid = response.body.user.uid;
+        expect(response.status).toBe(200);
+    });
+
     it('should throw an error for invalid credentials', async () => {
         const response = await request(app)
             .post('/api/auth/login')
@@ -120,6 +156,7 @@ describe('User Login', () => {
 });
 
 //FIXME: proper typing for the initial amount
+//TODO: add test case for editing money source and error case for doing forbidden edit on another user's money source
 describe('Money Sources', () => {
     it('should create a new money source', async () => {
         const response = await request(app)
@@ -145,8 +182,6 @@ describe('Money Sources', () => {
                 initialAmount: 1000.00,
             });
 
-
-        console.log('Destination Money Source Response:', response.body);
         money.destinationSourceUid = response.body.data.uid;
 
         expect(response.status).toBe(201);
@@ -188,6 +223,16 @@ describe('Money Sources', () => {
         expect(response.status).toBe(409);
         expect(response.body).toHaveProperty('message', 'Money source with this name already exists');
     });
+
+    it('should throw a forbidden error when trying to delete a money source that belongs to another user', async () => {
+        const response = await request(app)
+            .delete(`/api/moneysources/${money.originSourceUid}`)
+            .set('Authorization', `Bearer ${snoopyUser.token}`);
+
+        expect(response.status).toBe(403);
+        expect(response.body).toHaveProperty('message', 'You are not authorized to delete this money source');
+    });
+
 });
 
 describe('Income Transactions', () => {
@@ -201,6 +246,8 @@ describe('Income Transactions', () => {
                amount: '100.00',
                moneySource: money.originSourceUid,
             });
+        
+        transaction.income = response.body.data.transaction.uid;
         
         expect(response.status).toBe(201);
         expect(response.body).toHaveProperty('message', 'Income transaction created successfully');
@@ -249,6 +296,8 @@ describe('Expense Transactions', () => {
                type: 'EXPENSE'
             });
         
+        transaction.expense = response.body.data.transaction.uid;
+
         expect(response.status).toBe(201);
         expect(response.body).toHaveProperty('message', 'Expense transaction created successfully');
         expect(response.body).toHaveProperty('data.updatedMoneySource.amount', '1000.00');
@@ -312,8 +361,8 @@ describe('Transfer Transactions', () => {
                 transferDestination: money.destinationSourceUid,
             });
         
-        console.log('destination', money.destinationSourceUid);
-        console.log('Transfer Transaction Response:', response.body);
+        transaction.transfer = response.body.data.transaction.uid;
+
         expect(response.status).toBe(201);
         expect(response.body).toHaveProperty('message', 'Transfer transaction created successfully');
         expect(response.body).toHaveProperty('data.updatedMoneySource.amount', '900.00');
@@ -337,7 +386,65 @@ describe('Transfer Transactions', () => {
 });
 
 // TODO: add tests for deleting different types of transactions (income, expense, transfer) and ensure that the money source amounts are updated correctly after deletion.
+describe('Transaction Deletion', () => {
+    it('should delete an existing income transaction', async () => {
+        const response = await request(app)
+        .delete(`/api/transactions/delete/${transaction.income}`)
+        .set('Authorization', `Bearer ${user.token}`);
+        
+        expect(response.status).toBe(200);
+        expect(response.body).toHaveProperty('message', 'Transaction deleted successfully');
+    });
+    
+    it('should delete an existing expense transaction', async () => {
+        const response = await request(app)
+        .delete(`/api/transactions/delete/${transaction.expense}`)
+        .set('Authorization', `Bearer ${user.token}`);
+        
+        expect(response.status).toBe(200);
+        expect(response.body).toHaveProperty('message', 'Transaction deleted successfully');
+    });
+    //The end goal should be origin money source amount = 1100.00, destination money source amount = 1000.00 after deletion
+    
+    // TODO: add test for deleting a transaction that doesn't exist and ensure that the appropriate error is thrown.
+    it('should throw an error when trying to delete a transaction that does not exist', async () => {
+        const response = await request(app)
+            .delete(`/api/transactions/delete/${transaction.transfer}`)
+            .set('Authorization', `Bearer ${snoopyUser.token}`);
+        
+        expect(response.status).toBe(404);
+        expect(response.body).toHaveProperty('message', 'Transaction not found');
+    });
+
+});
 //TODO: prepare test for edge cases like deleting a transaction that doesn't exist, or deleting a transaction that belongs to another user, etc.
-// afterAll(async () => {
-//     await db.execute('TRUNCATE TABLE users RESTART IDENTITY CASCADE;');
-// });
+describe('Transaction Deletion Edge Case', () => {
+    
+    it('should delete an existing money source', async () => {
+        const response = await request(app)
+            .delete(`/api/moneysources/${money.originSourceUid}`)
+            .set('Authorization', `Bearer ${user.token}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body).toHaveProperty('message', 'Money source deleted successfully');
+    });
+
+    it('should delete an existing transaction even money source is missing', async () => {
+        const response = await request(app)
+            .delete(`/api/transactions/delete/${transaction.transfer}`)
+            .set('Authorization', `Bearer ${user.token}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body).toHaveProperty('message', 'Transaction deleted successfully');
+    });
+
+});
+
+afterAll(async () => {
+    await request(app)
+        .delete(`/api/users/${user.userUid}`)
+        .set('Authorization', `Bearer ${user.token}`);
+    await request(app)
+        .delete(`/api/users/${snoopyUser.userUid}`)
+        .set('Authorization', `Bearer ${snoopyUser.token}`);
+});

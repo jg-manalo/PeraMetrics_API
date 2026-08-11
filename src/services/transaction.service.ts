@@ -235,24 +235,29 @@ export const removeTransaction = async (userUid: string, transactionUid: string)
 
             switch (existingTransaction.category) {
                 case 'INCOME':
-            
-                    await updateMoneySourceBalance(tx, userUid, existingTransaction.moneySource, existingTransaction.amount, 'subtract');
 
+                    if (existingTransaction.moneySource) {
+                        await updateMoneySourceBalance(tx, userUid, existingTransaction.moneySource, existingTransaction.amount, 'subtract');
+                    }
                     await tx.delete(transactions).where(and(eq(transactions.uid, transactionUid), eq(transactions.user, userUid)));
+                    
                     break;
 
                 case 'EXPENSE':
-                    await updateMoneySourceBalance(tx, userUid, existingTransaction.moneySource, existingTransaction.amount, 'add');
-
+                    if (existingTransaction.moneySource) {
+                        await updateMoneySourceBalance(tx, userUid, existingTransaction.moneySource, existingTransaction.amount, 'add');
+                    }
                     await tx.delete(transactions).where(and(eq(transactions.uid, transactionUid), eq(transactions.user, userUid)));
             
                     break;
                 
                 case 'TRANSFER':
-
-                    await updateMoneySourceBalance(tx, userUid, existingTransaction.moneySource, existingTransaction.amount, 'add');
-                    await updateMoneySourceBalance(tx, userUid, existingTransaction.transferDestination!, existingTransaction.amount, 'subtract');
-
+                    if (existingTransaction.moneySource) {
+                        await updateMoneySourceBalance(tx, userUid, existingTransaction.moneySource, existingTransaction.amount, 'add');
+                    }
+                    if (existingTransaction.transferDestination) {
+                        await updateMoneySourceBalance(tx, userUid, existingTransaction.transferDestination, existingTransaction.amount, 'subtract');
+                    }
                     await tx.delete(transactions).where(and(eq(transactions.uid, transactionUid), eq(transactions.user, userUid)));
 
                     break;

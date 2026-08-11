@@ -7,7 +7,7 @@ export type Transaction = {
     amount: string;
     date: string;
     category?: 'INCOME' | 'EXPENSE' | 'TRANSFER' | null;
-    moneySource: string;
+    moneySource?: string | null;
     transferDestination?: string | null;
     createdAt?: Date;
     updatedAt?: Date;
