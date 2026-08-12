@@ -10,7 +10,7 @@ services:
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
     container_name: perametrics-api-dev
-    image: perametrics_api:1.0.0-dev
+    image: perametrics_api:0.0.1
     ports:
       - "3000:3000"
     volumes:
