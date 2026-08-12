@@ -5,15 +5,15 @@ export type TransactionReportLazyLoad = Transaction & {source: {name: string} | 
 
 export const reportResource = (report: TransactionReportLazyLoad[]) : TransactionReportResource => {
 
-    const totalIncome: number = report
+    const totalIncome = (report
         .filter(txn => txn.category === 'INCOME')
-        .reduce((sum, txn) => sum + parseFloat(txn.amount), 0);
+        .reduce((sum, txn) => sum + parseFloat(txn.amount), 0)).toFixed(2);
     
-    const totalExpenses: number = report
+    const totalExpenses = (report
         .filter(txn => txn.category === 'EXPENSE')
-        .reduce((sum, txn) => sum + parseFloat(txn.amount), 0);
+        .reduce((sum, txn) => sum + parseFloat(txn.amount), 0)).toFixed(2);
 
-    const savings: number = totalIncome - totalExpenses;
+    const savings = (parseFloat(totalIncome) - parseFloat(totalExpenses)).toFixed(2);
     
     return {
         totalIncome: totalIncome,

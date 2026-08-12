@@ -12,8 +12,18 @@ export type UserResource = Omit<User, 'password' | 'id'> & {
 };
 
 export type TransactionReportResource = {
-    totalIncome: number;
-    totalExpenses: number;
-    savings: number;
+    totalIncome: string;
+    totalExpenses: string;
+    savings: string;
     transactions: Partial<Transaction>[];
 }
+
+export type TransactionResource = {
+  uid: string;
+  date: string;
+  name: string;
+  amount: string;
+  category: Transaction['category'];
+  source?: string | null;
+  transferTo?: string | null;
+};

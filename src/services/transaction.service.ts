@@ -33,7 +33,19 @@ export const fetchTransactions = async (userUid: string, filters: TransactionQue
                 category: categoryFilter ? categoryFilter : undefined
             },
             orderBy: {
-                createdAt: order
+                date: order
+            },
+            with:{
+                source: {
+                    columns: {
+                        name: true
+                    }
+                },
+                transferTo: {
+                    columns: {
+                        name: true
+                    }
+                }
             },
             limit: pageLimit,
             offset: offset

@@ -34,12 +34,6 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction): vo
     } catch (error) {
         logger.error(`Token verification failed: ${error}`);
         next(error);
-        // if (error instanceof jwt.JsonWebTokenError) {
-        //     res.status(401).json({
-        //         message: `Verification failed: ${error.message}`
-        //     });
-        //     return;
-        // } 
         return;
     }
 };

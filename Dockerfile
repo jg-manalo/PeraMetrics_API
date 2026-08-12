@@ -80,7 +80,7 @@ RUN npm ci
 
 USER node
 
-COPY . .
+COPY --chown=node:node . .
 
 EXPOSE 3000
 

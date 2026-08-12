@@ -1,6 +1,7 @@
 import {storeExpense, storeIncome, storeTransfer, removeTransaction, fetchTransactions, generateReport} from '../services/transaction.service.js';
 import {reportResource} from '../resources/reports.resource.js';
 import {TransactionReportResource} from '../types/resources.js';
+import {transactionResource} from '../resources/transaction.resource.js';
 import {APIResponse} from '../types/api.js';
 import {BadRequestError} from '../errors/errors.js';
 import type {Transaction} from '../types/transaction.js';
@@ -9,19 +10,21 @@ import type {AuthenticatedRequest} from '../types/api.js';
 import type {MoneyInOutPayload, TransactionTransferPayload} from '../types/transaction.js';
 import type {ParamsDictionary} from 'express-serve-static-core';
 import type {TransactionQuery} from '../types/queries.js';
+import type {TransactionResource} from '../types/resources.js';
 
 type TransactionRequest<TParams extends ParamsDictionary> = AuthenticatedRequest<TParams, Pick<Transaction, 'name' | 'amount' | 'moneySource' | 'uid' | 'transferDestination'>, TransactionQuery>;
 
-export const getTransactions = async (req: TransactionRequest<{}>, res: APIResponse<Transaction[]>, next: NextFunction): Promise<void> => {
+export const getTransactions = async (req: TransactionRequest<{}>, res: APIResponse<TransactionResource[]>, next: NextFunction): Promise<void> => {
     try{
         const userUid = req.user.userUid;
 
         const filters: TransactionQuery = req.query;
         const transactions = await fetchTransactions(userUid, filters);
 
+        console.log("Fetched transactions:", transactions);
         res.status(200).json({
             message: "Transactions fetched successfully",
-            data: transactions
+            data: transactionResource(transactions)
         });
         
     }catch (error) {

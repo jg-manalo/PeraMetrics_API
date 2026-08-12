@@ -465,11 +465,11 @@ describe('Transaction Deletion Edge Case', () => {
 
 });
 
-// afterAll(async () => {
-//     await request(app)
-//         .delete(`/api/users/${user.userUid}`)
-//         .set('Authorization', `Bearer ${user.token}`);
-//     await request(app)
-//         .delete(`/api/users/${snoopyUser.userUid}`)
-//         .set('Authorization', `Bearer ${snoopyUser.token}`);
-// });
+afterAll(async () => {
+    await request(app)
+        .delete(`/api/users/${user.userUid}`)
+        .set('Authorization', `Bearer ${user.token}`);
+    await request(app)
+        .delete(`/api/users/${snoopyUser.userUid}`)
+        .set('Authorization', `Bearer ${snoopyUser.token}`);
+});

@@ -8,12 +8,13 @@
     "test:run": "node --env-file=.env.development ./node_modules/vitest/vitest.mjs run",
     "dev": "tsx watch --env-file=.env.development src/index.ts",
     "build": "tsc",
-    "docker-dev-build": "docker-compose -f docker-compose.dev.yaml up --build",
-    "docker-dev-down": "docker-compose -f docker-compose.dev.yaml down -v",
+    "docker-dev-build": "docker compose -f docker-compose.dev.yaml up --build",
+    "docker-dev-down": "docker compose -f docker-compose.dev.yaml down -v",
     "start-dev": "scripts\\dev.bat",
     "start": "node --env-file=.env.development dist/src/index.js",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx ./src/db/seed.ts"
   },
   "repository": {
     "type": "git",
