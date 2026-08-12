@@ -1,11 +1,11 @@
-import {createUser, findUserByEmail, updateUserPassword} from '../services/user.service';
-import {generateToken} from '../utils/jwt';
-import {GoneError, UnauthorizedError} from '../errors/errors';
-import {cache, getCachedValue} from '../services/redis.service';
-import {sendEmail} from '../services/mail.service';
+import {createUser, findUserByEmail, updateUserPassword} from '../services/user.service.js';
+import {generateToken} from '../utils/jwt.js';
+import {GoneError, UnauthorizedError} from '../errors/errors.js';
+import {cache, getCachedValue} from '../services/redis.service.js';
+import {sendEmail} from '../services/mail.service.js';
 import type {Request, NextFunction} from 'express';
-import type {User} from '../types/user';
-import type {APIResponse} from '../types/api';
+import type {User} from '../types/user.js';
+import type {APIResponse} from '../types/api.js';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 

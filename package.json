@@ -5,11 +5,11 @@
   "main": "index.js",
   "scripts": {
     "test": "vitest",
-    "test:run" : "node --env-file=.env.development ./node_modules/vitest/vitest.mjs run",
+    "test:run": "node --env-file=.env.development ./node_modules/vitest/vitest.mjs run",
     "dev": "tsx watch --env-file=.env.development src/index.ts",
     "build": "tsc",
     "docker-dev-build": "docker-compose -f docker-compose.dev.yaml up --build",
-    "docker-dev-down": "docker-compose -f docker-compose.dev.yaml down",
+    "docker-dev-down": "docker-compose -f docker-compose.dev.yaml down -v",
     "start-dev": "scripts\\dev.bat",
     "start": "node --env-file=.env.development dist/src/index.js",
     "db:generate": "drizzle-kit generate",
@@ -22,12 +22,13 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/jg-manalo/PeraMetrics_API/issues"
   },
   "homepage": "https://github.com/jg-manalo/PeraMetrics_API#readme",
   "devDependencies": {
+    "@faker-js/faker": "^10.5.0",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",

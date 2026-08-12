@@ -1,5 +1,5 @@
-import type { Request, Response, NextFunction } from 'express';
-import type {AuthenticatedRequest, APIResponse} from '../types/api';
+import type {NextFunction} from 'express';
+import type {AuthenticatedRequest, APIResponse} from '../types/api.js';
 
 type UserRequest = AuthenticatedRequest<{uid: string}, {}, {}> 
 

@@ -1,9 +1,9 @@
-import {findUserByUuid, removeUser, updateUserInfo} from '../services/user.service';
+import {findUserByUuid, removeUser, updateUserInfo} from '../services/user.service.js';
 import type {Request, Response, NextFunction} from 'express';
-import {userUpdateValidation} from '../validations/user.validation';
-import {formatValidationError} from '../validations/format';
+import {userUpdateValidation} from '../validations/user.validation.js';
+import {formatValidationError} from '../validations/format.js';
 import {ZodSafeParseResult} from 'zod';
-import type {User} from '../types/user';
+import type {User} from '../types/user.js';
 
 export const getUserByUuid  = async (req: Request<{uid: string}>, res: Response, next: NextFunction): Promise<void | Response> => {
     try{

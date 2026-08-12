@@ -1,6 +1,6 @@
 import {pgTable, uuid, text, integer, decimal, pgEnum, timestamp, date} from "drizzle-orm/pg-core";
-import {users} from './users'
-import {moneySources} from './moneysources'
+import {users} from './users.js'
+import {moneySources} from './moneysources.js'
 export const categoryEnum = pgEnum('transaction_category', ['INCOME', 'EXPENSE', 'TRANSFER']);
 
 export const transactions = pgTable("transactions", {

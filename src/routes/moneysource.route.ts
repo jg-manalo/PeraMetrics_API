@@ -1,9 +1,10 @@
-import {createMoneySource, deleteMoneySource, editMoneySource} from '../controllers/moneysource.controller'
-import {verifyToken} from '../middlewares/verify.token'
-import express from 'express';
 import type {Router} from 'express';
-import {validateData} from '../middlewares/validator';
-import {moneySourceValidation} from '../validations/moneysource.validation';
+import {createMoneySource, deleteMoneySource, editMoneySource} from '../controllers/moneysource.controller.js';
+import {verifyToken} from '../middlewares/verify.token.js';
+import {validateData} from '../middlewares/validator.js';
+import {moneySourceValidation} from '../validations/moneysource.validation.js';
+import express from 'express';
+
 const router: Router = express.Router();
 
 router.post('/', verifyToken, validateData(moneySourceValidation), createMoneySource);

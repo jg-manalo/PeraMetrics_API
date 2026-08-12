@@ -1,6 +1,6 @@
 import {Request, Response, NextFunction} from 'express';
 import {z} from 'zod';
-import { formatValidationError } from '../validations/format';
+import { formatValidationError } from '../validations/format.js';
 
 export const validateData = (schema: z.ZodObject<any, any>) => {
     return (req: Request, res: Response, next: NextFunction) : void => {

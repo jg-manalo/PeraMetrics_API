@@ -1,5 +1,5 @@
-import type {Transaction} from '../types/transaction';
-import type {TransactionReportResource} from '../types/resources';
+import type {Transaction} from '../types/transaction.js';
+import type {TransactionReportResource} from '../types/resources.js';
 
 export type TransactionReportLazyLoad = Transaction & {source: {name: string} | null, transferTo?: {name: string} | null};
 

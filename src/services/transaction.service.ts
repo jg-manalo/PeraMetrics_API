@@ -1,13 +1,13 @@
-import {db} from '../config/database';
-import {transactions} from '../models/transactions';
+import {db} from '../config/database.js';
+import {transactions} from '../models/transactions.js';
 import {eq, and} from 'drizzle-orm';
-import {updateMoneySourceBalance, getMoneySourceByUuid} from './moneysource.service';
-import {NotFoundError, ValueError} from '../errors/errors';
-import type { Transaction } from '../types/transaction';
-import type {MoneyInOutPayload, TransactionTransferPayload} from '../types/transaction';
-import type { TransactionQuery } from '../types/queries';
-import logger from '../config/logger';
-import { MoneySource } from '../types/moneysource';
+import {updateMoneySourceBalance, getMoneySourceByUuid} from './moneysource.service.js';
+import {NotFoundError, ValueError} from '../errors/errors.js';
+import type { Transaction } from '../types/transaction.js';
+import type {MoneyInOutPayload, TransactionTransferPayload} from '../types/transaction.js';
+import type { TransactionQuery } from '../types/queries.js';
+import logger from '../config/logger.js';
+import { MoneySource } from '../types/moneysource.js';
 
 type TransactionReport = Transaction & {
     source: {
@@ -87,7 +87,7 @@ export const generateReport = async (userUid: string, startDate: string, endDate
     }
 }
 
-export const storeIncome = async (userUid: string, name: string, amount: string, moneySource: string): Promise<MoneyInOutPayload> => {
+export const storeIncome = async (userUid: string, name: string, amount: string, moneySource: string | null): Promise<MoneyInOutPayload> => {
     try{
         const result = await db.transaction(async (tx) => {
             
@@ -125,7 +125,7 @@ export const storeIncome = async (userUid: string, name: string, amount: string,
     }
 }
 
-export const storeExpense = async (userUid: string, name: string, amount: string, moneySource: string): Promise<MoneyInOutPayload> => {
+export const storeExpense = async (userUid: string, name: string, amount: string, moneySource: string | null): Promise<MoneyInOutPayload> => {
     try{
         const result = await db.transaction(async (tx) => {
 
@@ -168,7 +168,7 @@ export const storeExpense = async (userUid: string, name: string, amount: string
     }
 }
 
-export const storeTransfer = async (userUid: string, name: string, amount: string, originMoneySource: string, destinationMoneySource: string | undefined | null): Promise<TransactionTransferPayload> => {
+export const storeTransfer = async (userUid: string, name: string, amount: string, originMoneySource: string | null, destinationMoneySource: string | undefined | null): Promise<TransactionTransferPayload> => {
     try{
         const result = await db.transaction(async (tx) => {
         

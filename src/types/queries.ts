@@ -1,4 +1,4 @@
-import type {Transaction} from './transaction';
+import type {Transaction} from './transaction.js';
 
 export type TransactionQuery = {
     page?: number;

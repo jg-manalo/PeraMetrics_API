@@ -1,6 +1,6 @@
-import {users} from '../models/users';
-import {moneySources} from '../models/moneysources';
-import {transactions} from '../models/transactions';
+import {users} from '../models/users.js';
+import {moneySources} from '../models/moneysources.js';
+import {transactions} from '../models/transactions.js';
 import {defineRelations} from 'drizzle-orm';
 
 export const relations = defineRelations({users, moneySources, transactions}, (r) => ({

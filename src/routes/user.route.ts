@@ -1,7 +1,7 @@
+import {deleteUser, getUserByUuid, updateUser,} from '../controllers/user.controller.js';
+import {verifyToken} from '../middlewares/verify.token.js';
+import {checkAuthorizationForUserCredentials} from '../middlewares/check.authorization.js';
 import express from 'express';
-import {deleteUser, getUserByUuid, updateUser,} from '../controllers/user.controller';
-import {verifyToken} from '../middlewares/verify.token';
-import {checkAuthorizationForUserCredentials} from '../middlewares/check.authorization';
 
 const router = express.Router();
 

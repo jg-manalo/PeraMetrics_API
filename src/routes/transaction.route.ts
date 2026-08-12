@@ -1,9 +1,9 @@
-import express from 'express';
-import {transactExpense, transactIncome, transactTransfer, deleteTransaction, getTransactions, generatePeriodicReport} from '../controllers/transaction.controller';
-import {verifyToken} from '../middlewares/verify.token';
 import type {Router} from 'express';
-import {validateData} from '../middlewares/validator';
-import {transactionValidation} from '../validations/transaction.validation';
+import {transactExpense, transactIncome, transactTransfer, deleteTransaction, getTransactions, generatePeriodicReport} from '../controllers/transaction.controller.js';
+import {verifyToken} from '../middlewares/verify.token.js';
+import {validateData} from '../middlewares/validator.js';
+import {transactionValidation} from '../validations/transaction.validation.js';
+import express from 'express';
 
 const router: Router = express.Router();
 

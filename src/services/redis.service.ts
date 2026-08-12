@@ -1,6 +1,6 @@
-import redisClient from '../config/redis';
+import redisClient from '../config/redis.js';
 import type {SetOptions} from 'redis';
-import {RedisError} from '../errors/errors';
+import {RedisError} from '../errors/errors.js';
 
 export const cache = async (key:string, value:string, options?: SetOptions | undefined): Promise<void> => {
    const result = await redisClient.set(key, value, options);

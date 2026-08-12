@@ -1,11 +1,11 @@
-import {db} from '../config/database';
-import {moneySources} from '../models/moneysources';
+import type {User} from '../types/user.js';
+import type {MoneySource} from '../types/moneysource.js';
+import type {DatabaseTransaction} from '../types/databasetransaction.js';
+import {db} from '../config/database.js';
 import {eq, and} from 'drizzle-orm';
-import type {User} from '../types/user';
-import type {MoneySource} from '../types/moneysource';
-import logger from '../config/logger';
-import type {DatabaseTransaction} from '../types/databasetransaction';
-import {NotFoundError, DuplicateError, ForbiddenError, ValueError} from '../errors/errors';
+import {moneySources} from '../models/moneysources.js';
+import {NotFoundError, DuplicateError, ForbiddenError, ValueError} from '../errors/errors.js';
+import logger from '../config/logger.js';
 
 export const generateMoneySource = async (name: string, userUid: User['uid'], initialAmount?: string): Promise<Partial<MoneySource> | undefined> => {
     try{
@@ -46,8 +46,11 @@ export const generateMoneySource = async (name: string, userUid: User['uid'], in
     }
 }
 
-export const getMoneySourceByUuid = async (uid: string) => {
+export const getMoneySourceByUuid = async (uid: string | null) => {
     try{
+        if (!uid) {
+            throw new NotFoundError('uid is required to find money source');
+        }
         const moneySource = await db.query.moneySources.findFirst({
             where: {
                 uid: uid,

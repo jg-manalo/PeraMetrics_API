@@ -1,14 +1,14 @@
-import {storeExpense, storeIncome, storeTransfer, removeTransaction, fetchTransactions, generateReport} from '../services/transaction.service';
-import {reportResource} from '../resources/reports.resource';
-import {TransactionReportResource} from '../types/resources';
-import {APIResponse} from '../types/api';
-import {BadRequestError} from '../errors/errors';
-import type {Transaction} from '../types/transaction';
+import {storeExpense, storeIncome, storeTransfer, removeTransaction, fetchTransactions, generateReport} from '../services/transaction.service.js';
+import {reportResource} from '../resources/reports.resource.js';
+import {TransactionReportResource} from '../types/resources.js';
+import {APIResponse} from '../types/api.js';
+import {BadRequestError} from '../errors/errors.js';
+import type {Transaction} from '../types/transaction.js';
 import type {NextFunction} from 'express';
-import type {AuthenticatedRequest} from '../types/api';
-import type {MoneyInOutPayload, TransactionTransferPayload} from '../types/transaction';
+import type {AuthenticatedRequest} from '../types/api.js';
+import type {MoneyInOutPayload, TransactionTransferPayload} from '../types/transaction.js';
 import type {ParamsDictionary} from 'express-serve-static-core';
-import type {TransactionQuery} from '../types/queries';
+import type {TransactionQuery} from '../types/queries.js';
 
 type TransactionRequest<TParams extends ParamsDictionary> = AuthenticatedRequest<TParams, Pick<Transaction, 'name' | 'amount' | 'moneySource' | 'uid' | 'transferDestination'>, TransactionQuery>;
 

@@ -1,4 +1,4 @@
-import type { MoneySource } from "./moneysource";
+import type { MoneySource } from "./moneysource.js";
 
 export type Transaction = {
     id: number;
@@ -7,7 +7,7 @@ export type Transaction = {
     amount: string;
     date: string;
     category?: 'INCOME' | 'EXPENSE' | 'TRANSFER' | null;
-    moneySource?: string | null;
+    moneySource: string | null;
     transferDestination?: string | null;
     createdAt?: Date;
     updatedAt?: Date;

@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
-import app from '../src/app';
-import { db } from '../src/config/database';
+import app from '../src/app.js';
+import { db } from '../src/config/database.js';
 
 // TODO: to be exported in the future and must reside in the login test file once the test suite is fully structured and organized.
 
@@ -458,17 +458,18 @@ describe('Transaction Deletion Edge Case', () => {
             .delete(`/api/transactions/delete/${transaction.transfer}`)
             .set('Authorization', `Bearer ${user.token}`);
 
+        console.log('Response body:', response.body); // Log the response body for debugging
         expect(response.status).toBe(200);
         expect(response.body).toHaveProperty('message', 'Transaction deleted successfully');
     });
 
 });
 
-afterAll(async () => {
-    await request(app)
-        .delete(`/api/users/${user.userUid}`)
-        .set('Authorization', `Bearer ${user.token}`);
-    await request(app)
-        .delete(`/api/users/${snoopyUser.userUid}`)
-        .set('Authorization', `Bearer ${snoopyUser.token}`);
-});
+// afterAll(async () => {
+//     await request(app)
+//         .delete(`/api/users/${user.userUid}`)
+//         .set('Authorization', `Bearer ${user.token}`);
+//     await request(app)
+//         .delete(`/api/users/${snoopyUser.userUid}`)
+//         .set('Authorization', `Bearer ${snoopyUser.token}`);
+// });

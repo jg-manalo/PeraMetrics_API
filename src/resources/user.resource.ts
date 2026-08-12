@@ -1,4 +1,4 @@
-import type {UserResource} from '../types/resources';
+import type {UserResource} from '../types/resources.js';
 
 export const userResource = (user: UserResource | undefined) : UserResource | undefined => {
    
@@ -10,10 +10,7 @@ export const userResource = (user: UserResource | undefined) : UserResource | un
         uid: user.uid,
         name: user.name,
         email: user.email,
-        moneySources: user?.moneySources?.map(income => ({
-            name: income.name,
-            amount: income.amount.toString()
-        })),
+        moneySources: user?.moneySources,
         transactionsMade: user?.transactions?.length || 0,
         expenses: user?.transactions?.filter(flow => flow.category === 'EXPENSE').length || 0,
         income: user?.transactions?.filter(flow => flow.category === 'INCOME').length || 0,

@@ -1,9 +1,9 @@
-import {generateMoneySource, editMoneySourceName, removeMoneySource} from '../services/moneysource.service';
+import {generateMoneySource, editMoneySourceName, removeMoneySource} from '../services/moneysource.service.js';
 import type {NextFunction} from 'express';
-import type {AuthenticatedRequest} from '../types/api';
+import type {AuthenticatedRequest} from '../types/api.js';
 import type {ParamsDictionary} from 'express-serve-static-core';
-import type {APIResponse} from '../types/api';
-import type {MoneySource} from '../types/moneysource';
+import type {APIResponse} from '../types/api.js';
+import type {MoneySource} from '../types/moneysource.js';
 
 type MoneySourceRequest<TParams extends ParamsDictionary> = AuthenticatedRequest<TParams, { name: string, initialAmount?: string }, {}>;
 

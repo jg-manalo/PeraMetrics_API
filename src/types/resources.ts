@@ -1,6 +1,6 @@
-import type {User} from './user';
-import type { MoneySource } from './moneysource';
-import { Transaction } from './transaction';
+import type {User} from './user.js';
+import type { MoneySource } from './moneysource.js';
+import { Transaction } from './transaction.js';
 
 export type UserResource = Omit<User, 'password' | 'id'> & {
     moneySources?: MoneySource[];

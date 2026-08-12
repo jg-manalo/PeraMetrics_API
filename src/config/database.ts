@@ -1,6 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import {relations} from '../models/relations';
+import {relations} from '../models/relations.js';
 import {Pool} from 'pg';
 
 

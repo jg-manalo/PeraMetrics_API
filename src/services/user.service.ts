@@ -1,12 +1,12 @@
-import {db} from '../config/database';
-import {users} from '../models/users';
+import {db} from '../config/database.js';
+import {users} from '../models/users.js';
 import {eq} from 'drizzle-orm';
-import {userResource} from '../resources/user.resource';
-import {DuplicateError, NotFoundError} from '../errors/errors'
-import type {User} from '../types/user';
-import type {UserResource} from '../types/resources';
+import {userResource} from '../resources/user.resource.js';
+import {DuplicateError, NotFoundError} from '../errors/errors.js'
+import type {User} from '../types/user.js';
+import type {UserResource} from '../types/resources.js';
 import bcrypt from 'bcrypt';
-import logger from '../config/logger';
+import logger from '../config/logger.js';
 
 export const hashPassword = async (password: string): Promise<string> => {
     try{
@@ -121,7 +121,12 @@ export const findUserByUuid = async (uuid: string): Promise<UserResource | undef
                 uid: uuid
             },  
             with: {
-                moneySources: true,
+                moneySources: {
+                    columns: {
+                        name: true,
+                        amount: true,          
+                    }
+                },
                 transactions: true
             }
         });
@@ -129,7 +134,7 @@ export const findUserByUuid = async (uuid: string): Promise<UserResource | undef
         if(!user){
             return undefined;
         }
-
+        // return user;
         return userResource(user);
     } catch (error) {
         logger.error(`Error finding user by uuid ${uuid}:`, error);

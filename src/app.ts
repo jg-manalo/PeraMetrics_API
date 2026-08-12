@@ -1,13 +1,13 @@
 import type {Express, Request, Response} from 'express';
 import express from 'express';
 import cors from 'cors';
-import authRoutes from './routes/auth.route'
-import userRoutes from './routes/user.route'
-import moneysourceRoutes from './routes/moneysource.route'
-import transactionRoutes from './routes/transaction.route'
-import limiter from './middlewares/limiter';
-import {connectRedis} from './config/redis';
-import {errorHandler} from './middlewares/error.handler';
+import authRoutes from './routes/auth.route.js'
+import userRoutes from './routes/user.route.js'
+import moneysourceRoutes from './routes/moneysource.route.js'
+import transactionRoutes from './routes/transaction.route.js'
+import limiter from './middlewares/limiter.js';
+import {connectRedis} from './config/redis.js';
+import {errorHandler} from './middlewares/error.handler.js';
 
 const app: Express = express();
 
