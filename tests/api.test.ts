@@ -457,8 +457,7 @@ describe('Transaction Deletion Edge Case', () => {
         const response = await request(app)
             .delete(`/api/transactions/delete/${transaction.transfer}`)
             .set('Authorization', `Bearer ${user.token}`);
-
-        console.log('Response body:', response.body); // Log the response body for debugging
+            
         expect(response.status).toBe(200);
         expect(response.body).toHaveProperty('message', 'Transaction deleted successfully');
     });
