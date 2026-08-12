@@ -39,7 +39,7 @@ const main = async () => {
 
   for (const [userId, sources] of userMoneySourcesMap.entries()) {
     for (const source of sources) {
-      for (let k = 0; k < 5; k++) {
+      for (let k = 0; k < 25; k++) {
         const type = faker.helpers.arrayElement(['EXPENSE', 'INCOME', 'TRANSFER']);
         const amount = Number(faker.finance.amount({ min: 1, max: 5, dec: 2 }));
 
@@ -108,7 +108,7 @@ const main = async () => {
   await db.insert(transactions).values(transactionData);
   console.log('Seeding 10 users...');
   console.log('Seeding 2 money source for each user...');
-  console.log('Seeding 10 transactions for each user...');
+  console.log('Seeding 50 transactions for each user...');
 };
 
 main();
