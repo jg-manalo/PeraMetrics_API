@@ -1,4 +1,4 @@
-name: Perametrics API CI/CD Pipeline
+name: Perametrics API Test
 
 on:
   pull_request:
@@ -26,6 +26,12 @@ jobs:
         run: |
           echo "Running tests with coverage..."
           npm test
+        env:
+          NODE_ENV: test
+          NODE_OPTIONS: --experimental-vm-modules
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL}}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          JWT_SECRET: test-secret-for-ci
 
       - name: Upload coverage report
         if: always()
