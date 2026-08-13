@@ -3,100 +3,73 @@ import {
   removeUser,
   updateUserInfo,
 } from '../services/user.service.js';
-import type { Request, Response, NextFunction } from 'express';
-import { userUpdateValidation } from '../validations/user.validation.js';
-import { formatValidationError } from '../validations/format.js';
-import { ZodSafeParseResult } from 'zod';
+import type { Request, NextFunction } from 'express';
 import type { User } from '../types/user.js';
+import type { APIResponse } from '../types/api.js';
+import type { AuthenticatedRequest } from '../types/api.js';
+import type { ParamsDictionary } from 'express-serve-static-core';
+import type { UserResource } from '../types/resources.js';
+
+type UserRequest<TParams extends ParamsDictionary> = AuthenticatedRequest<
+  TParams,
+  Pick<User, 'name' | 'email' | 'password'>,
+  unknown
+>;
 
 export const getUserByUuid = async (
   req: Request<{ uid: string }>,
-  res: Response,
+  res: APIResponse<UserResource>,
   next: NextFunction
-): Promise<void | Response> => {
+): Promise<void> => {
   try {
-    const { uid }: { uid: string | undefined } = req.params;
+    const { uid } = req.params;
 
     const user = await findUserByUuid(uid);
 
-    if (!user) {
-      return res.status(404).json({
-        message: 'User not found',
-      });
-    }
-
-    return res.status(200).json(user);
+    res.status(200).json({
+      message: 'User retrieved successfully',
+      data: user,
+    });
   } catch (error) {
     next(error);
   }
 };
 
 export const updateUser = async (
-  req: Request<{ uid: string }>,
-  res: Response,
+  req: UserRequest<{ uid: string }>,
+  res: APIResponse<Partial<User>>,
   next: NextFunction
-): Promise<Response | undefined> => {
+): Promise<void> => {
   try {
-    const { uid }: { uid: string | undefined } = req.params;
+    const { uid } = req.params;
 
-    const {
-      name,
-      email,
-      password,
-    }: { name?: string; email?: string; password?: string } = req.body;
-
-    const validateUser: ZodSafeParseResult<Partial<User>> =
-      userUpdateValidation.safeParse(req.body);
-
-    if (!validateUser.success) {
-      return res.status(400).json({
-        message: 'Validation failed',
-        errors: formatValidationError(validateUser.error),
-      });
-    }
+    const { name, email, password } = req.body;
 
     const updatedUser = await updateUserInfo(uid, name, email, password);
 
-    return res.status(200).json(updatedUser);
+    res.status(200).json({
+      message: 'User updated successfully',
+      data: updatedUser,
+    });
   } catch (error) {
-    if (error instanceof Error && error.message === 'User not found') {
-      return res.status(404).json({
-        message: error.message,
-      });
-    }
-
-    if (
-      error instanceof Error &&
-      error.message === 'Email already in use by another user'
-    ) {
-      return res.status(400).json({
-        message: error.message,
-      });
-    }
-
     next(error);
   }
 };
 
 export const deleteUser = async (
-  req: Request<{ uid: string }>,
-  res: Response,
+  req: UserRequest<{ uid: string }>,
+  res: APIResponse<void>,
   next: NextFunction
-): Promise<Response | undefined> => {
+): Promise<void> => {
   try {
-    const { uid }: { uid: string | undefined } = req.params;
+    const { uid } = req.params;
 
     await removeUser(uid);
 
-    return res.status(200).json({
+    res.status(200).json({
       message: 'User deleted successfully',
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'User not found') {
-      return res.status(404).json({
-        message: error.message,
-      });
-    }
     next(error);
   }
 };
