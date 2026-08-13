@@ -41,6 +41,7 @@
     "@types/node": "^26.0.1",
     "@types/pg": "^8.20.0",
     "@types/supertest": "^7.2.1",
+    "@vitest/coverage-v8": "^4.1.10",
     "drizzle-kit": "^1.0.0-rc.4",
     "supertest": "^7.2.2",
     "tsx": "^4.22.4",
