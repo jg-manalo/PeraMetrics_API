@@ -21,7 +21,7 @@ export const registerUser = async (
   try {
     const { name, email, password } = req.body;
 
-    const data = await createUser(name, email, password);
+    // const data = await createUser(name, email, password);
 
     res.status(201).json({
       message: 'User registered successfully',
