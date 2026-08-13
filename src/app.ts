@@ -1,13 +1,13 @@
-import type { Express, Request, Response } from 'express';
+import type {Express, Request, Response} from 'express';
 import express from 'express';
 import cors from 'cors';
-import authRoutes from './routes/auth.route.js';
-import userRoutes from './routes/user.route.js';
-import moneysourceRoutes from './routes/moneysource.route.js';
-import transactionRoutes from './routes/transaction.route.js';
+import authRoutes from './routes/auth.route.js'
+import userRoutes from './routes/user.route.js'
+import moneysourceRoutes from './routes/moneysource.route.js'
+import transactionRoutes from './routes/transaction.route.js'
 import limiter from './middlewares/limiter.js';
-import { connectRedis } from './config/redis.js';
-import { errorHandler } from './middlewares/error.handler.js';
+import {connectRedis} from './config/redis.js';
+import {errorHandler} from './middlewares/error.handler.js';
 
 const app: Express = express();
 
@@ -18,7 +18,7 @@ app.use(limiter);
 connectRedis();
 
 app.get('/', (req: Request, res: Response) => {
-  res.send('PeraMetrics API is running successfully!');
+    res.send('PeraMetrics API is running successfully!');
 });
 
 app.use('/api/auth', authRoutes);

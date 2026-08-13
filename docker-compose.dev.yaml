@@ -7,12 +7,12 @@ services:
     env_file:
       - .env.development
     environment:
-      CHOKIDAR_USEPOLLING: 'true'
-      WATCHPACK_POLLING: 'true'
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
     container_name: perametrics-api-dev
     image: perametrics_api:0.0.1
     ports:
-      - '3000:3000'
+      - "3000:3000"
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
@@ -23,12 +23,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-
+  
   neon-local:
     image: neondatabase/neon_local:v1.5
     container_name: neon-local
     ports:
-      - '5432:5432'
+      - "5432:5432"
     volumes:
       # Persist branch metadata per git branch (optional)
       - ./.neon_local/:/tmp/.neon_local
@@ -47,7 +47,7 @@ services:
     image: redis:8.8-alpine
     container_name: redis
     ports:
-      - '6379:6379'
+      - "6379:6379"
     environment:
       - REDIS_ARGS=--requirepass 123123 --appendonly yes
     volumes:
@@ -56,7 +56,7 @@ services:
     networks:
       - perametrics-network
     healthcheck:
-      test: ['CMD', 'redis-cli', '-a', '123123', 'ping']
+      test: ["CMD", "redis-cli", "-a" ,"123123" ,"ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -66,14 +66,14 @@ services:
     image: redis/redisinsight:3.8
     container_name: redisinsight
     ports:
-      - '5540:5540'
+      -  "5540:5540"
     networks:
       - perametrics-network
     volumes:
       - redisinsight:/data
     depends_on:
       - redis
-
+  
 volumes:
   redisinsight:
     driver: local
