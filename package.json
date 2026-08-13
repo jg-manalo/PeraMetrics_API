@@ -12,10 +12,6 @@
     "docker-dev-down": "docker compose -f docker-compose.dev.yaml down -v",
     "start-dev": "scripts\\dev.bat",
     "start": "node --env-file=.env.development dist/src/index.js",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx ./src/db/seed.ts"
