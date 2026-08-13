@@ -15,13 +15,13 @@ type MoneySourceRequest<TParams extends ParamsDictionary> =
 export const createMoneySource = async (
   req: MoneySourceRequest<{}>,
   res: APIResponse<Partial<MoneySource> | undefined>,
-  next: NextFunction,
+  next: NextFunction
 ): Promise<void> => {
   try {
     const { name, initialAmount } = req.body;
     const userUid = req.user?.userUid;
 
-    const newSource = await generateMoneySource(name, userUid, initialAmount);
+    // const newSource = await generateMoneySource(name, userUid, initialAmount);
 
     res.status(201).json({
       message: 'Money source created successfully',
@@ -35,7 +35,7 @@ export const createMoneySource = async (
 export const editMoneySource = async (
   req: MoneySourceRequest<{ uid: string }>,
   res: APIResponse<Partial<MoneySource> | undefined>,
-  next: NextFunction,
+  next: NextFunction
 ): Promise<void> => {
   try {
     const { uid } = req.params;
@@ -56,7 +56,7 @@ export const editMoneySource = async (
 export const deleteMoneySource = async (
   req: MoneySourceRequest<{ uid: string }>,
   res: APIResponse<Partial<MoneySource> | undefined>,
-  next: NextFunction,
+  next: NextFunction
 ): Promise<void> => {
   try {
     const { uid } = req.params;

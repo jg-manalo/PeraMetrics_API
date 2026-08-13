@@ -3,5 +3,11 @@ coverage/
 logs/
 drizzle/
 *.log
+<<<<<<< HEAD
 package.lock.json
 .github/
+=======
+package-lock.json
+dist/
+build/
+>>>>>>> 9f92cf139669e517bd46265437be217dc3060e57
