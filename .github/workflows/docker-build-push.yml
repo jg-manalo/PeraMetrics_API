@@ -1,0 +1,69 @@
+name: Perametrics API Docker Build and Push
+
+on:
+  push:
+    branches:
+      - development
+  workflow_dispatch:
+    inputs:
+      tag_suffix:
+        description: 'Additional tag suffix (optional)'
+        required: false
+        type: string
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      REGISTRY: docker.io
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/perametrics_api
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.2.0
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=Perametrics API
+            org.opencontainers.image.description=Node.js Express API for Perametrics system
+            org.opencontainers.image.vendor=Joaquin Manalo
+            org.opencontainers.image.created={{date 'YYYY-MM-DDTHH:mm:ssZ'}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7.3.0
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+            BUILD_DATE={{date 'YYYY-MM-DDTHH:mm:ssZ'}}
+            GIT_SHA=${{ github.sha }}
+            GIT_REF=${{ github.ref_name }}
