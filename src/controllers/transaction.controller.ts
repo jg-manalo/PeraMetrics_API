@@ -1,122 +1,165 @@
-import {storeExpense, storeIncome, storeTransfer, removeTransaction, fetchTransactions, generateReport} from '../services/transaction.service.js';
-import {reportResource} from '../resources/reports.resource.js';
-import {TransactionReportResource} from '../types/resources.js';
-import {transactionResource} from '../resources/transaction.resource.js';
-import {APIResponse} from '../types/api.js';
-import {BadRequestError} from '../errors/errors.js';
-import type {Transaction} from '../types/transaction.js';
-import type {NextFunction} from 'express';
-import type {AuthenticatedRequest} from '../types/api.js';
-import type {MoneyInOutPayload, TransactionTransferPayload} from '../types/transaction.js';
-import type {ParamsDictionary} from 'express-serve-static-core';
-import type {TransactionQuery} from '../types/queries.js';
-import type {TransactionResource} from '../types/resources.js';
+import {
+  storeExpense,
+  storeIncome,
+  storeTransfer,
+  removeTransaction,
+  fetchTransactions,
+  generateReport,
+} from '../services/transaction.service.js';
+import { reportResource } from '../resources/reports.resource.js';
+import { TransactionReportResource } from '../types/resources.js';
+import { transactionResource } from '../resources/transaction.resource.js';
+import { APIResponse } from '../types/api.js';
+import { BadRequestError } from '../errors/errors.js';
+import type { Transaction } from '../types/transaction.js';
+import type { NextFunction } from 'express';
+import type { AuthenticatedRequest } from '../types/api.js';
+import type {
+  MoneyInOutPayload,
+  TransactionTransferPayload,
+} from '../types/transaction.js';
+import type { ParamsDictionary } from 'express-serve-static-core';
+import type { TransactionQuery } from '../types/queries.js';
+import type { TransactionResource } from '../types/resources.js';
 
-type TransactionRequest<TParams extends ParamsDictionary> = AuthenticatedRequest<TParams, Pick<Transaction, 'name' | 'amount' | 'moneySource' | 'uid' | 'transferDestination'>, TransactionQuery>;
+type TransactionRequest<TParams extends ParamsDictionary> =
+  AuthenticatedRequest<
+    TParams,
+    Pick<
+      Transaction,
+      'name' | 'amount' | 'moneySource' | 'uid' | 'transferDestination'
+    >,
+    TransactionQuery
+  >;
 
-export const getTransactions = async (req: TransactionRequest<{}>, res: APIResponse<TransactionResource[]>, next: NextFunction): Promise<void> => {
-    try{
-        const userUid = req.user.userUid;
+export const getTransactions = async (
+  req: TransactionRequest<{}>,
+  res: APIResponse<TransactionResource[]>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const userUid = req.user.userUid;
 
-        const filters: TransactionQuery = req.query;
-        const transactions = await fetchTransactions(userUid, filters);
+    const filters: TransactionQuery = req.query;
+    const transactions = await fetchTransactions(userUid, filters);
 
-        console.log("Fetched transactions:", transactions);
-        res.status(200).json({
-            message: "Transactions fetched successfully",
-            data: transactionResource(transactions)
-        });
-        
-    }catch (error) {
-        next(error);
+    console.log('Fetched transactions:', transactions);
+    res.status(200).json({
+      message: 'Transactions fetched successfully',
+      data: transactionResource(transactions),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const generatePeriodicReport = async (
+  req: TransactionRequest<{}>,
+  res: APIResponse<TransactionReportResource>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const userUid = req.user.userUid;
+
+    const { to, from }: TransactionQuery = req.query;
+
+    if (!to || !from) {
+      throw new BadRequestError('Start date and end date are required');
     }
-}
 
-export const generatePeriodicReport = async (req: TransactionRequest<{}>, res: APIResponse<TransactionReportResource>, next: NextFunction): Promise<void> => {
-    try {
-        const userUid = req.user.userUid;
+    const report = await generateReport(userUid, from, to);
 
-        const {to, from} : TransactionQuery = req.query;
+    res.status(200).json({
+      message: 'Timely report generated successfully',
+      data: reportResource(report),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-        if (!to || !from) {
-            throw new BadRequestError("Start date and end date are required");
-        }
+export const transactIncome = async (
+  req: TransactionRequest<{}>,
+  res: APIResponse<MoneyInOutPayload>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const { name, amount, moneySource } = req.body;
 
-        const report = await generateReport(userUid, from, to);
+    const userUid = req.user.userUid;
 
-        res.status(200).json({
-            message: "Timely report generated successfully",
-            data: reportResource(report)
-        });
+    const newIncome = await storeIncome(userUid, name, amount, moneySource);
 
-    } catch (error) {
-        next(error);
-    }
-}
+    res.status(201).json({
+      message: 'Income transaction created successfully',
+      data: newIncome,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-export const transactIncome = async (req: TransactionRequest<{}>, res: APIResponse<MoneyInOutPayload>, next: NextFunction): Promise<void> => {
-    try{
-        const {name, amount, moneySource} = req.body;
+export const transactExpense = async (
+  req: TransactionRequest<{}>,
+  res: APIResponse<MoneyInOutPayload>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const userUid = req.user.userUid;
+    const { name, amount, moneySource } = req.body;
 
-        const userUid = req.user.userUid;
+    const newExpense = await storeExpense(userUid, name, amount, moneySource);
 
-        const newIncome = await storeIncome(userUid, name, amount, moneySource);
+    res.status(201).json({
+      message: 'Expense transaction created successfully',
+      data: newExpense,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-        res.status(201).json({
-            message: 'Income transaction created successfully',
-            data: newIncome
-        });
+export const transactTransfer = async (
+  req: TransactionRequest<{}>,
+  res: APIResponse<TransactionTransferPayload>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const userUid = req.user.userUid;
+    const { name, amount, moneySource, transferDestination } = req.body;
 
-    } catch (error) {
-        next(error);
-    }
-}
+    const newTransfer: TransactionTransferPayload = await storeTransfer(
+      userUid,
+      name,
+      amount,
+      moneySource,
+      transferDestination,
+    );
 
-export const transactExpense = async (req: TransactionRequest<{}>, res: APIResponse<MoneyInOutPayload>, next: NextFunction): Promise<void> => {
-    try{
-        const userUid = req.user.userUid;
-        const {name, amount, moneySource} = req.body;
+    res.status(201).json({
+      message: 'Transfer transaction created successfully',
+      data: newTransfer,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-        const newExpense = await storeExpense(userUid, name, amount, moneySource);
+export const deleteTransaction = async (
+  req: TransactionRequest<{ uid: string }>,
+  res: APIResponse<void>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const { uid } = req.params;
+    const userUid = req.user.userUid;
 
-        res.status(201).json({
-            message: "Expense transaction created successfully",
-            data: newExpense
-        });
-    }catch (error) {
-        next(error);
-    }
-}
+    await removeTransaction(userUid, uid);
 
-export const transactTransfer = async (req: TransactionRequest<{}>, res: APIResponse<TransactionTransferPayload>, next: NextFunction): Promise<void> => {
-    try{
-        const userUid  = req.user.userUid;
-        const {name, amount, moneySource, transferDestination} = req.body;
-
-        const newTransfer: TransactionTransferPayload = await storeTransfer(userUid, name, amount, moneySource, transferDestination);
-
-        res.status(201).json({
-            message: "Transfer transaction created successfully",
-            data: newTransfer
-        });
-        
-    } catch (error) {
-        next(error);
-    }
-}
-
-export const deleteTransaction = async (req: TransactionRequest<{uid: string}>, res: APIResponse<void>, next: NextFunction): Promise<void> => {
-    try{
-        const {uid} = req.params;
-        const userUid = req.user.userUid;
-
-        await removeTransaction(userUid, uid);
-
-        res.status(200).json({
-            message: "Transaction deleted successfully",
-        });
-
-    } catch (error) {
-        next(error);
-    }
-}
+    res.status(200).json({
+      message: 'Transaction deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
