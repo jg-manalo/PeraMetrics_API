@@ -3,7 +3,7 @@ name: Perametrics API Test
 on:
   pull_request:
     branches:
-      - test
+      - devops
 
 jobs:
   test:
