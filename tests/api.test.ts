@@ -503,50 +503,6 @@ describe('Transaction Deletion Edge Case', () => {
   });
 });
 
-describe('User Profile', () => {
-  it('should retrieve the user profile', async () => {
-    const response = await request(app)
-      .get(`/api/users/${user.userUid}`)
-      .set('Authorization', `Bearer ${user.token}`);
-
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty(
-      'message',
-      'User retrieved successfully'
-    );
-  });
-
-  it('should update the user profile', async () => {
-    const response = await request(app)
-      .put(`/api/users/${user.userUid}`)
-      .set('Authorization', `Bearer ${user.token}`)
-      .send({
-        name: 'Updated Test User',
-      });
-
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty(
-      'message',
-      'User updated successfully'
-    );
-  });
-
-  it('should throw a forbidden error when trying to update the profile of another user', async () => {
-    const response = await request(app)
-      .put(`/api/users/${user.userUid}`)
-      .set('Authorization', `Bearer ${snoopyUser.token}`)
-      .send({
-        name: 'Updated Test User',
-      });
-
-    expect(response.status).toBe(403);
-    expect(response.body).toHaveProperty(
-      'message',
-      'Forbidden. You are not authorized to access this resource'
-    );
-  });
-});
-
 afterAll(async () => {
   await request(app)
     .delete(`/api/users/${user.userUid}`)

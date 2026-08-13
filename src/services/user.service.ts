@@ -69,14 +69,14 @@ export const updateUserInfo = async (
     });
 
     if (!existingUser) {
-      throw new NotFoundError('User not found');
+      throw new Error('User not found');
     }
 
     if (email) {
       const emailExists = await findUserByEmail(email);
 
       if (emailExists && emailExists.uid !== uuid) {
-        throw new DuplicateError('Email already in use by another user');
+        throw new Error('Email already in use by another user');
       }
     }
     const [updatedUser]: Partial<User>[] = await db
@@ -143,8 +143,9 @@ export const findUserByUuid = async (
     });
 
     if (!user) {
-      throw new NotFoundError('User not found');
+      return undefined;
     }
+    // return user;
     return userResource(user);
   } catch (error) {
     logger.error(`Error finding user by uuid ${uuid}:`, error);
