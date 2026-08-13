@@ -179,19 +179,19 @@ export const updateMoneySourceBalance = async (
         throw new Error('Invalid operation');
     }
 
-    const [updatedMoneySource] = await tx
-      .update(moneySources)
-      .set({
-        amount: totalAmount.toString(),
-        updatedAt: new Date(),
-      })
-      .where(
-        and(eq(moneySources.uid, moneySource), eq(moneySources.user, userUid)),
-      )
-      .returning({
-        name: moneySources.name,
-        amount: moneySources.amount,
-      });
+    // const [updatedMoneySource] = await tx
+    //   .update(moneySources)
+    //   .set({
+    //     amount: totalAmount.toString(),
+    //     updatedAt: new Date(),
+    //   })
+    //   .where(
+    //     and(eq(moneySources.uid, moneySource), eq(moneySources.user, userUid)),
+    //   )
+    //   .returning({
+    //     name: moneySources.name,
+    //     amount: moneySources.amount,
+    //   });
 
     return updatedMoneySource;
   } catch (error) {
