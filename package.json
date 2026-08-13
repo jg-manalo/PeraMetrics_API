@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "vitest",
+    "test": "vitest run --coverage",
     "test:run": "node --env-file=.env.development ./node_modules/vitest/vitest.mjs run",
     "dev": "tsx watch --env-file=.env.development src/index.ts",
     "build": "tsc",
@@ -44,6 +44,7 @@
     "@types/supertest": "^7.2.1",
     "@typescript-eslint/eslint-plugin": "^8.67.0",
     "@typescript-eslint/parser": "^8.67.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "drizzle-kit": "^1.0.0-rc.4",
     "eslint": "^10.8.1",
     "eslint-config-prettier": "^10.1.8",
