@@ -14,8 +14,11 @@
     "format:check": "prettier --check .",
     "docker-dev-build": "docker compose -f docker-compose.dev.yaml up --build",
     "docker-dev-down": "docker compose -f docker-compose.dev.yaml down -v",
+    "docker-prod-down": "docker compose -f docker-compose.prod.yaml down -v",
+    "docker-prod-build": "docker compose -f docker-compose.prod.yaml up --build",
+    "start-prod": "scripts\\prod.bat",
     "start-dev": "scripts\\dev.bat",
-    "start": "node --env-file=.env.development dist/src/index.js",
+    "start": "node --env-file=.env.production dist/src/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx ./src/db/seed.ts"
