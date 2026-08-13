@@ -1,26 +1,19 @@
-import type { UserResource } from '../types/resources.js';
+import type {UserResource} from '../types/resources.js';
 
-export const userResource = (
-  user: UserResource | undefined
-): UserResource | undefined => {
-  if (!user) {
-    return undefined;
-  }
-
-  return {
-    uid: user.uid,
-    name: user.name,
-    email: user.email,
-    moneySources: user?.moneySources,
-    transactionsMade: user?.transactions?.length || 0,
-    expenses:
-      user?.transactions?.filter(flow => flow.category === 'EXPENSE').length ||
-      0,
-    income:
-      user?.transactions?.filter(flow => flow.category === 'INCOME').length ||
-      0,
-    transfers:
-      user?.transactions?.filter(flow => flow.category === 'TRANSFER').length ||
-      0,
-  };
+export const userResource = (user: UserResource | undefined) : UserResource | undefined => {
+   
+    if (!user) {
+        return undefined;
+    }
+    
+    return {
+        uid: user.uid,
+        name: user.name,
+        email: user.email,
+        moneySources: user?.moneySources,
+        transactionsMade: user?.transactions?.length || 0,
+        expenses: user?.transactions?.filter(flow => flow.category === 'EXPENSE').length || 0,
+        income: user?.transactions?.filter(flow => flow.category === 'INCOME').length || 0,
+        transfers: user?.transactions?.filter(flow => flow.category === 'TRANSFER').length || 0
+    };
 };
