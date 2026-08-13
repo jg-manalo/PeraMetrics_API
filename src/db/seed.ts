@@ -12,7 +12,10 @@ const main = async () => {
   const moneySourceData: (typeof moneySources.$inferInsert)[] = [];
   const transactionData: (typeof transactions.$inferInsert)[] = [];
 
-  const userMoneySourcesMap = new Map<string, Array<{ uid: string; name: string; amount: string; user: string }>>();
+  const userMoneySourcesMap = new Map<
+    string,
+    Array<{ uid: string; name: string; amount: string; user: string }>
+  >();
 
   for (let i = 0; i < 10; i++) {
     const uid = faker.string.uuid();
@@ -40,7 +43,11 @@ const main = async () => {
   for (const [userId, sources] of userMoneySourcesMap.entries()) {
     for (const source of sources) {
       for (let k = 0; k < 25; k++) {
-        const type = faker.helpers.arrayElement(['EXPENSE', 'INCOME', 'TRANSFER']);
+        const type = faker.helpers.arrayElement([
+          'EXPENSE',
+          'INCOME',
+          'TRANSFER',
+        ]);
         const amount = Number(faker.finance.amount({ min: 1, max: 5, dec: 2 }));
 
         if (type === 'TRANSFER') {
@@ -50,7 +57,9 @@ const main = async () => {
             const targetSource = faker.helpers.arrayElement(availableTargets);
 
             source.amount = (parseFloat(source.amount) - amount).toFixed(2);
-            targetSource.amount = (parseFloat(targetSource.amount) + amount).toFixed(2);
+            targetSource.amount = (
+              parseFloat(targetSource.amount) + amount
+            ).toFixed(2);
 
             transactionData.push({
               uid: faker.string.uuid(),

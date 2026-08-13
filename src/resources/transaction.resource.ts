@@ -6,8 +6,10 @@ type TransactionLazyLoader = Transaction & {
   transferTo?: { name: string };
 };
 
-export const transactionResource = (transaction: TransactionLazyLoader[]): TransactionResource[] => {
-  return transaction.map(txn => ({
+export const transactionResource = (
+  transaction: TransactionLazyLoader[],
+): TransactionResource[] => {
+  return transaction.map((txn) => ({
     uid: txn.uid,
     date: txn.date,
     name: txn.name,
@@ -15,5 +17,5 @@ export const transactionResource = (transaction: TransactionLazyLoader[]): Trans
     category: txn.category,
     source: txn.source?.name ?? null,
     transferTo: txn.transferTo?.name ?? null,
-    }))
+  }));
 };
