@@ -1,0 +1,74 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final
+    env_file:
+      - .env
+    container_name: perametrics-api-prod
+    image: perametrics_api:0.0.1
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./logs:/usr/src/app/logs
+    networks:
+      - perametrics-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:8.8-alpine
+    container_name: redis
+    ports:
+      - '6379:6379'
+    environment:
+      - REDIS_ARGS=--requirepass {{REDIS_PASSWORD}} --appendonly yes
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - perametrics-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '{{REDIS_PASSWORD}}', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+
+  redisinsight:
+    image: redis/redisinsight:3.8
+    container_name: redisinsight
+    ports:
+      - '5540:5540'
+    networks:
+      - perametrics-network
+    volumes:
+      - redisinsight:/data
+    depends_on:
+      - redis
+
+volumes:
+  redisinsight:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  perametrics-network:
+    driver: bridge

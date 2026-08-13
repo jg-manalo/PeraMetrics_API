@@ -1,9 +1,9 @@
 drizzle/
 node_modules/
 .env.development
+.env.production
 .env
 *.log
 dist/
-scripts/
 .neon_local/
 coverage/
