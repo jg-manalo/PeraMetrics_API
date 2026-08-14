@@ -3,7 +3,6 @@ name: Perametrics API Build and Push
 on:
   push:
     branches:
-      - devops
       - main
 
   workflow_dispatch:
