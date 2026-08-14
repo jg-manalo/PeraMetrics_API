@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
       target: final
     env_file:
-      - .env
+      - .env.production
     container_name: perametrics-api-prod
     image: perametrics_api:0.0.1
     ports:
