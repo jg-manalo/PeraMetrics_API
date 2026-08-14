@@ -3,7 +3,7 @@ name: Perametrics API Codebase Lint and Prettier Check
 on:
   pull_request:
     branches:
-      - temp-main
+      - main
 
 jobs:
   codebase-format-check:
