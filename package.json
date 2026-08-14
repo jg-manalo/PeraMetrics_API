@@ -18,7 +18,7 @@
     "docker-prod-down": "docker compose -f docker-compose.prod.yaml down -v",
     "start-prod": "scripts\\prod.bat",
     "start-dev": "scripts\\dev.bat",
-    "start": "node --env-file=.env.development dist/src/index.js",
+    "start": "node --env-file=.env.production dist/src/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx ./src/db/seed.ts"
