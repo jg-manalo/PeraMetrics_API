@@ -41,6 +41,7 @@ export const generateRefreshToken = (
   const payload = {
     userUid: userUid,
     jti: jti,
+    rememberMe: rememberMe,
   };
 
   const token = jwt.sign(payload, refreshTokenSecret, {
@@ -102,21 +103,28 @@ export const setRefreshTokenCookie = (
   }
 };
 
-// TODO: paano papasok yung rememberMe sa refresh token rotation?
+// TODO: better condition handling
 export const rotateRefreshToken = async (
   jti: string,
   userUid: string,
   res: Response,
-  rememberedMe = true
+  tokenHash: string,
+  rememberedMe: boolean
 ): Promise<string> => {
-  await revokeRefreshToken(userUid, jti);
+  await revokeRefreshToken(tokenHash, jti);
   const newJti = createJti();
-  const sessionOnly = !rememberedMe;
+  const sessionOnly = false;
 
-  const newRefreshToken = rememberedMe
-    ? generateRefreshToken(userUid, newJti, rememberedMe)
-    : generateRefreshToken(userUid, newJti, sessionOnly);
-  await persistRefreshToken(userUid, newRefreshToken, newJti);
+  const newRefreshToken =
+    rememberedMe === true
+      ? generateRefreshToken(userUid, newJti, rememberedMe)
+      : generateRefreshToken(userUid, newJti, sessionOnly);
+
+  const persistPromise =
+    rememberedMe === true
+      ? await persistRefreshToken(userUid, newRefreshToken, newJti)
+      : await persistShortLivedToken(userUid, newRefreshToken, newJti);
+
   setRefreshTokenCookie(res, newRefreshToken);
 
   return newRefreshToken;

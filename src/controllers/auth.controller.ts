@@ -148,8 +148,11 @@ export const logoutUser = async (
   }
 };
 
+// TODO: paano aabot yung rememberMe value dito? Dapat ba i-pass sa refreshToken function?
 export const refreshToken = async (
-  req: Request & { cookies: { refreshToken?: string } },
+  req: Request & {
+    cookies: { refreshToken?: string };
+  },
   res: APIResponse<void>,
   next: NextFunction
 ) => {
@@ -176,9 +179,10 @@ export const refreshToken = async (
       throw new UnauthorizedError('Invalid or expired refresh token');
     }
 
-    const { jti, userUid } = decoded as jwt.JwtPayload & {
+    const { jti, userUid, rememberMe } = decoded as jwt.JwtPayload & {
       jti: string | undefined;
       userUid: string;
+      rememberMe: boolean;
     };
 
     if (!jti || !userUid) {
@@ -200,7 +204,13 @@ export const refreshToken = async (
       throw new UnauthorizedError('Refresh token does not match the user');
     }
 
-    const newAccessToken = await rotateRefreshToken(jti, userUid, res);
+    const newAccessToken = await rotateRefreshToken(
+      jti,
+      userUid,
+      res,
+      tokenHash,
+      rememberMe
+    );
 
     res.status(200).json({
       message: 'Token refreshed successfully',

@@ -8,6 +8,7 @@ import {
   DuplicateError,
   BadRequestError,
   GoneError,
+  RedisError,
 } from '../errors/errors.js';
 import jwt from 'jsonwebtoken';
 
@@ -34,6 +35,8 @@ export const errorHandler = (
   } else if (err instanceof GoneError) {
     res.status(err.statusCode).json({ message: err.message });
   } else if (err instanceof ValueError) {
+    res.status(err.statusCode).json({ message: err.message });
+  } else if (err instanceof RedisError) {
     res.status(err.statusCode).json({ message: err.message });
   } else {
     res.status(500).json({ message: 'Internal Server Error' });
