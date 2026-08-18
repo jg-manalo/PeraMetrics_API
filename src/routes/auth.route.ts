@@ -4,6 +4,8 @@ import {
   loginUser,
   requestPasswordReset,
   resetPassword,
+  refreshToken,
+  logoutUser,
 } from '../controllers/auth.controller.js';
 import { validateData } from '../middlewares/validator.js';
 import { userValidation } from '../validations/user.validation.js';
@@ -18,5 +20,7 @@ router.post(
   validateData(updatePasswordValidation),
   resetPassword
 );
+router.post('/refresh', refreshToken);
+router.post('/logout', logoutUser);
 
 export default router;

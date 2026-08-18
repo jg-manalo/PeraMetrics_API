@@ -3,15 +3,37 @@ import {
   findUserByEmail,
   updateUserPassword,
 } from '../services/user.service.js';
-import { generateToken } from '../utils/jwt.js';
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  setRefreshTokenCookie,
+  hashToken,
+  revokeRefreshToken,
+} from '../utils/jwt.js';
 import { GoneError, UnauthorizedError } from '../errors/errors.js';
-import { cache, getCachedValue } from '../services/redis.service.js';
+import {
+  cache,
+  getCachedValue,
+  lookupCache,
+  revokeCache,
+} from '../services/redis.service.js';
 import { sendEmail } from '../services/mail.service.js';
-import type { Request, NextFunction } from 'express';
+import type { Request, NextFunction, Response } from 'express';
 import type { User } from '../types/user.js';
-import type { APIResponse } from '../types/api.js';
+import type { APIResponse, APISimpleResponse } from '../types/api.js';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
+import {
+  persistRefreshToken,
+  createJti,
+  rotateRefreshToken,
+} from '../utils/jwt.js';
+import jwt from 'jsonwebtoken';
+
+type RefreshTokenPayload = jwt.JwtPayload & {
+  jti: string;
+  userUid: string;
+};
 
 export const registerUser = async (
   req: Request<{}, unknown, User>,
@@ -51,7 +73,13 @@ export const loginUser = async (
     }
 
     if (user) {
-      const token = generateToken(user.uid);
+      const token = generateAccessToken(user.uid);
+      const jti = createJti();
+      const refreshToken = generateRefreshToken(user.uid, jti);
+      await persistRefreshToken(user.uid, refreshToken, jti);
+
+      setRefreshTokenCookie(res, refreshToken);
+
       res.status(200).json({
         message: 'Login successful',
         data: {
@@ -62,6 +90,110 @@ export const loginUser = async (
         token,
       });
     }
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const logoutUser = async (
+  req: Request,
+  res: APISimpleResponse,
+  next: NextFunction
+) => {
+  try {
+    const token = req.cookies?.refreshToken;
+    if (!process.env.REFRESH_TOKEN_SECRET) {
+      throw new UnauthorizedError(
+        'Refresh token secret not found in environment variables'
+      );
+    }
+    if (token) {
+      //TODO: can be refactored into a reusable function to avoid code duplication with refreshToken function
+      const tokenHash = hashToken(token);
+      const decoded = jwt.verify(
+        token,
+        process.env.REFRESH_TOKEN_SECRET
+      ) as RefreshTokenPayload;
+
+      const { jti, userUid } = decoded;
+      const userFromSession = await lookupCache(
+        `refreshToken:${tokenHash}:${jti}`
+      );
+
+      if (userFromSession !== userUid) {
+        await revokeCache(`refreshToken:${tokenHash}:${jti}`);
+        throw new UnauthorizedError('Refresh token does not match the user');
+      }
+
+      await revokeRefreshToken(tokenHash, jti);
+      res.clearCookie('refreshToken', { path: '/api/auth/refresh' });
+
+      res.status(200).json({
+        message: 'Logout successful',
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const refreshToken = async (
+  req: Request & { cookies: { refreshToken?: string } },
+  res: APISimpleResponse,
+  next: NextFunction
+) => {
+  try {
+    const token = req.cookies?.refreshToken;
+    if (!token) {
+      throw new UnauthorizedError('No refresh token provided');
+    }
+
+    if (!process.env.REFRESH_TOKEN_SECRET) {
+      throw new UnauthorizedError(
+        'Refresh token secret not found in environment variables'
+      );
+    }
+
+    let decoded: RefreshTokenPayload;
+
+    try {
+      decoded = jwt.verify(
+        token,
+        process.env.REFRESH_TOKEN_SECRET
+      ) as RefreshTokenPayload;
+    } catch (error) {
+      throw new UnauthorizedError('Invalid or expired refresh token');
+    }
+
+    const { jti, userUid } = decoded as jwt.JwtPayload;
+
+    console.log('Decoded refresh token:', decoded);
+
+    if (!jti || !userUid) {
+      throw new UnauthorizedError('Malformed refresh token payload');
+    }
+
+    const tokenHash = hashToken(token);
+
+    const redisKey = `refreshToken:${tokenHash}:${jti}`;
+    const userFromSession = await lookupCache(redisKey);
+
+    if (!userFromSession) {
+      await revokeCache(redisKey);
+      throw new UnauthorizedError('Refresh token has been revoked or expired');
+    }
+
+    if (userUid !== userFromSession) {
+      await revokeCache(redisKey);
+      throw new UnauthorizedError('Refresh token does not match the user');
+    }
+
+    const newAccessToken = await rotateRefreshToken(jti, userUid, res);
+
+    res.status(200).json({
+      message: 'Token refreshed successfully',
+      token: newAccessToken,
+    });
   } catch (error) {
     next(error);
   }

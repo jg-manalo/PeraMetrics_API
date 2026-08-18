@@ -8,12 +8,31 @@ import transactionRoutes from './routes/transaction.route.js';
 import limiter from './middlewares/limiter.js';
 import { connectRedis } from './config/redis.js';
 import { errorHandler } from './middlewares/error.handler.js';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import logger from './config/logger.js';
+import morgan from 'morgan';
 
 const app: Express = express();
 
-app.use(cors());
+app.use(helmet());
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  })
+);
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(limiter);
+app.use(cookieParser());
+app.use(
+  morgan('combined', {
+    stream: { write: message => logger.info(message.trim()) },
+  })
+);
 
 connectRedis();
 
