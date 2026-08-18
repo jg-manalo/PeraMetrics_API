@@ -9,6 +9,7 @@ import {
   setRefreshTokenCookie,
   hashToken,
   revokeRefreshToken,
+  persistShortLivedToken,
 } from '../utils/jwt.js';
 import { GoneError, UnauthorizedError } from '../errors/errors.js';
 import {
@@ -18,9 +19,9 @@ import {
   revokeCache,
 } from '../services/redis.service.js';
 import { sendEmail } from '../services/mail.service.js';
-import type { Request, NextFunction, Response } from 'express';
+import type { Request, NextFunction } from 'express';
 import type { User } from '../types/user.js';
-import type { APIResponse, APISimpleResponse } from '../types/api.js';
+import type { APIResponse } from '../types/api.js';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import {
@@ -55,12 +56,16 @@ export const registerUser = async (
 };
 
 export const loginUser = async (
-  req: Request<{}, unknown, Pick<User, 'email' | 'password'>>,
+  req: Request<
+    {},
+    unknown,
+    Pick<User, 'email' | 'password'> & { rememberMe: boolean }
+  >,
   res: APIResponse<Omit<User, 'password' | 'id'> | string>,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     const user = await findUserByEmail(email);
 
@@ -75,10 +80,16 @@ export const loginUser = async (
     if (user) {
       const token = generateAccessToken(user.uid);
       const jti = createJti();
-      const refreshToken = generateRefreshToken(user.uid, jti);
-      await persistRefreshToken(user.uid, refreshToken, jti);
+      const refreshToken = generateRefreshToken(user.uid, jti, rememberMe);
 
-      setRefreshTokenCookie(res, refreshToken);
+      if (rememberMe) {
+        const isPersistent = true;
+        await persistRefreshToken(user.uid, refreshToken, jti);
+        setRefreshTokenCookie(res, refreshToken, isPersistent);
+      } else {
+        setRefreshTokenCookie(res, refreshToken);
+        await persistShortLivedToken(user.uid, refreshToken, jti);
+      }
 
       res.status(200).json({
         message: 'Login successful',
@@ -97,7 +108,7 @@ export const loginUser = async (
 
 export const logoutUser = async (
   req: Request,
-  res: APISimpleResponse,
+  res: APIResponse<void>,
   next: NextFunction
 ) => {
   try {
@@ -139,7 +150,7 @@ export const logoutUser = async (
 
 export const refreshToken = async (
   req: Request & { cookies: { refreshToken?: string } },
-  res: APISimpleResponse,
+  res: APIResponse<void>,
   next: NextFunction
 ) => {
   try {
@@ -165,9 +176,10 @@ export const refreshToken = async (
       throw new UnauthorizedError('Invalid or expired refresh token');
     }
 
-    const { jti, userUid } = decoded as jwt.JwtPayload;
-
-    console.log('Decoded refresh token:', decoded);
+    const { jti, userUid } = decoded as jwt.JwtPayload & {
+      jti: string | undefined;
+      userUid: string;
+    };
 
     if (!jti || !userUid) {
       throw new UnauthorizedError('Malformed refresh token payload');

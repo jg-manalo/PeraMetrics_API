@@ -10,6 +10,7 @@ const accessTokenExpiration = '15m';
 const refreshTokenExpiration = '30d';
 const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
 const thirtyDaysInSeconds = 30 * 24 * 60 * 60;
+const oneHourInSeconds = 1 * 60 * 60;
 
 export const hashToken = (token: string): string => {
   return crypto.createHash('sha256').update(token).digest('hex');
@@ -29,7 +30,11 @@ export const createJti = (): string => {
   return crypto.randomBytes(16).toString('hex');
 };
 
-export const generateRefreshToken = (userUid: string, jti: string): string => {
+export const generateRefreshToken = (
+  userUid: string,
+  jti: string,
+  rememberMe: boolean
+): string => {
   if (!refreshTokenSecret) {
     throw new NotFoundError('REFRESH_TOKEN_SECRET is not defined');
   }
@@ -39,12 +44,22 @@ export const generateRefreshToken = (userUid: string, jti: string): string => {
   };
 
   const token = jwt.sign(payload, refreshTokenSecret, {
-    expiresIn: refreshTokenExpiration,
+    expiresIn: rememberMe ? refreshTokenExpiration : oneHourInSeconds,
   });
 
   return token;
 };
 
+export const persistShortLivedToken = async (
+  userUid: string,
+  refreshToken: string,
+  jti: string
+): Promise<void> => {
+  const tokenHash = hashToken(refreshToken);
+  await cache(`refreshToken:${tokenHash}:${jti}`, userUid, {
+    EX: oneHourInSeconds,
+  });
+};
 export const persistRefreshToken = async (
   userUid: string,
   refreshToken: string,
@@ -64,26 +79,43 @@ export const revokeRefreshToken = async (
 
 export const setRefreshTokenCookie = (
   res: Response,
-  refreshToken: string
+  refreshToken: string,
+  isPersistent: boolean = false
 ): void => {
   const isProd = process.env.NODE_ENV === 'production';
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'strict' : 'lax',
-    path: '/api/auth/refresh',
-    maxAge: thirtyDaysInSeconds * 1000, // Convert to milliseconds
-  });
+
+  if (isPersistent) {
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'strict' : 'lax',
+      path: '/api/auth/refresh',
+      maxAge: thirtyDaysInSeconds * 1000, // Convert to milliseconds
+    });
+  } else {
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'strict' : 'lax',
+      path: '/api/auth/refresh',
+    });
+  }
 };
 
+// TODO: paano papasok yung rememberMe sa refresh token rotation?
 export const rotateRefreshToken = async (
   jti: string,
   userUid: string,
-  res: Response
+  res: Response,
+  rememberedMe = true
 ): Promise<string> => {
   await revokeRefreshToken(userUid, jti);
   const newJti = createJti();
-  const newRefreshToken = generateRefreshToken(userUid, newJti);
+  const sessionOnly = !rememberedMe;
+
+  const newRefreshToken = rememberedMe
+    ? generateRefreshToken(userUid, newJti, rememberedMe)
+    : generateRefreshToken(userUid, newJti, sessionOnly);
   await persistRefreshToken(userUid, newRefreshToken, newJti);
   setRefreshTokenCookie(res, newRefreshToken);
 
