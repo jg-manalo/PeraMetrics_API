@@ -7,6 +7,10 @@ export type APIResponse<T> = Response<
   { message: string; data?: T; token?: string } | { errors?: string | string[] }
 >;
 
+export type APISimpleResponse = Response<
+  { message: string; token?: string } | { errors?: string | string[] }
+>;
+
 export type AuthTokenPayload = jwt.JwtPayload & {
   userUid: string;
 };

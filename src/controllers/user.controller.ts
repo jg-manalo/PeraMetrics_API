@@ -9,6 +9,7 @@ import type { APIResponse } from '../types/api.js';
 import type { AuthenticatedRequest } from '../types/api.js';
 import type { ParamsDictionary } from 'express-serve-static-core';
 import type { UserResource } from '../types/resources.js';
+import { revokeAllRefreshTokens } from '../utils/jwt.js';
 
 type UserRequest<TParams extends ParamsDictionary> = AuthenticatedRequest<
   TParams,
@@ -64,6 +65,7 @@ export const deleteUser = async (
   try {
     const { uid } = req.params;
 
+    await revokeAllRefreshTokens(uid);
     await removeUser(uid);
 
     res.status(200).json({
