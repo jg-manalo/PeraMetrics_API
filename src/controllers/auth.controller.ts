@@ -11,7 +11,7 @@ import {
   revokeRefreshToken,
   persistShortLivedToken,
 } from '../utils/jwt.js';
-import { GoneError, UnauthorizedError } from '../errors/errors.js';
+import { GoneError, UnauthorizedError, ValueError } from '../errors/errors.js';
 import {
   cache,
   getCachedValue,
@@ -34,6 +34,7 @@ import jwt from 'jsonwebtoken';
 type RefreshTokenPayload = jwt.JwtPayload & {
   jti: string;
   userUid: string;
+  rememberMe: boolean;
 };
 
 export const registerUser = async (
@@ -77,30 +78,28 @@ export const loginUser = async (
       throw new UnauthorizedError('Invalid email or password');
     }
 
-    if (user) {
-      const token = generateAccessToken(user.uid);
-      const jti = createJti();
-      const refreshToken = generateRefreshToken(user.uid, jti, rememberMe);
+    const token = generateAccessToken(user.uid);
+    const jti = createJti();
+    const refreshToken = generateRefreshToken(user.uid, jti, rememberMe);
 
-      if (rememberMe) {
-        const isPersistent = true;
-        await persistRefreshToken(user.uid, refreshToken, jti);
-        setRefreshTokenCookie(res, refreshToken, isPersistent);
-      } else {
-        setRefreshTokenCookie(res, refreshToken);
-        await persistShortLivedToken(user.uid, refreshToken, jti);
-      }
-
-      res.status(200).json({
-        message: 'Login successful',
-        data: {
-          uid: user?.uid,
-          email: user?.email,
-          name: user?.name,
-        },
-        token,
-      });
+    if (rememberMe) {
+      const isPersistent = true;
+      await persistRefreshToken(user.uid, refreshToken, jti);
+      setRefreshTokenCookie(res, refreshToken, isPersistent);
+    } else {
+      setRefreshTokenCookie(res, refreshToken);
+      await persistShortLivedToken(user.uid, refreshToken, jti);
     }
+
+    res.status(200).json({
+      message: 'Login successful',
+      data: {
+        uid: user?.uid,
+        email: user?.email,
+        name: user?.name,
+      },
+      token,
+    });
   } catch (error) {
     next(error);
   }
@@ -112,43 +111,29 @@ export const logoutUser = async (
   next: NextFunction
 ) => {
   try {
-    const token = req.cookies?.refreshToken;
-    if (!process.env.REFRESH_TOKEN_SECRET) {
-      throw new UnauthorizedError(
-        'Refresh token secret not found in environment variables'
-      );
+    const token = getRefreshToken(req);
+    const tokenHash = hashToken(token);
+    const decoded = decodeRefreshToken(token);
+    const { jti, userUid } = getDecodedObject(decoded);
+
+    const tokenFromSession = await lookupCache(`sessions:${userUid}:${jti}`);
+
+    if (tokenFromSession !== tokenHash) {
+      await revokeRefreshToken(jti, userUid);
+      throw new UnauthorizedError('Refresh token does not match the user');
     }
-    if (token) {
-      //TODO: can be refactored into a reusable function to avoid code duplication with refreshToken function
-      const tokenHash = hashToken(token);
-      const decoded = jwt.verify(
-        token,
-        process.env.REFRESH_TOKEN_SECRET
-      ) as RefreshTokenPayload;
 
-      const { jti, userUid } = decoded;
-      const userFromSession = await lookupCache(
-        `refreshToken:${tokenHash}:${jti}`
-      );
+    await revokeRefreshToken(jti, userUid);
+    res.clearCookie('refreshToken', { path: '/api/auth/refresh' });
 
-      if (userFromSession !== userUid) {
-        await revokeCache(`refreshToken:${tokenHash}:${jti}`);
-        throw new UnauthorizedError('Refresh token does not match the user');
-      }
-
-      await revokeRefreshToken(tokenHash, jti);
-      res.clearCookie('refreshToken', { path: '/api/auth/refresh' });
-
-      res.status(200).json({
-        message: 'Logout successful',
-      });
-    }
+    res.status(200).json({
+      message: 'Logout successful',
+    });
   } catch (error) {
     next(error);
   }
 };
 
-// TODO: paano aabot yung rememberMe value dito? Dapat ba i-pass sa refreshToken function?
 export const refreshToken = async (
   req: Request & {
     cookies: { refreshToken?: string };
@@ -157,33 +142,9 @@ export const refreshToken = async (
   next: NextFunction
 ) => {
   try {
-    const token = req.cookies?.refreshToken;
-    if (!token) {
-      throw new UnauthorizedError('No refresh token provided');
-    }
-
-    if (!process.env.REFRESH_TOKEN_SECRET) {
-      throw new UnauthorizedError(
-        'Refresh token secret not found in environment variables'
-      );
-    }
-
-    let decoded: RefreshTokenPayload;
-
-    try {
-      decoded = jwt.verify(
-        token,
-        process.env.REFRESH_TOKEN_SECRET
-      ) as RefreshTokenPayload;
-    } catch (error) {
-      throw new UnauthorizedError('Invalid or expired refresh token');
-    }
-
-    const { jti, userUid, rememberMe } = decoded as jwt.JwtPayload & {
-      jti: string | undefined;
-      userUid: string;
-      rememberMe: boolean;
-    };
+    const token = getRefreshToken(req);
+    const decoded = decodeRefreshToken(token);
+    const { jti, userUid, rememberMe } = getDecodedObject(decoded);
 
     if (!jti || !userUid) {
       throw new UnauthorizedError('Malformed refresh token payload');
@@ -191,24 +152,23 @@ export const refreshToken = async (
 
     const tokenHash = hashToken(token);
 
-    const redisKey = `refreshToken:${tokenHash}:${jti}`;
-    const userFromSession = await lookupCache(redisKey);
+    const redisKey = `sessions:${userUid}:${jti}`;
+    const refreshTokenFromSession = await lookupCache(redisKey);
 
-    if (!userFromSession) {
+    if (!refreshTokenFromSession) {
       await revokeCache(redisKey);
       throw new UnauthorizedError('Refresh token has been revoked or expired');
     }
 
-    if (userUid !== userFromSession) {
+    if (tokenHash !== refreshTokenFromSession) {
       await revokeCache(redisKey);
-      throw new UnauthorizedError('Refresh token does not match the user');
+      throw new UnauthorizedError('Refresh token does not match');
     }
 
     const newAccessToken = await rotateRefreshToken(
       jti,
       userUid,
       res,
-      tokenHash,
       rememberMe
     );
 
@@ -282,4 +242,49 @@ export const resetPassword = async (
   } catch (error) {
     next(error);
   }
+};
+
+const getRefreshToken = (req: Request): string => {
+  const token = req.cookies?.refreshToken;
+  if (!token) {
+    throw new UnauthorizedError('No refresh token provided');
+  }
+  return token;
+};
+
+const decodeRefreshToken = (token: string): string | jwt.JwtPayload => {
+  if (!process.env.REFRESH_TOKEN_SECRET) {
+    throw new UnauthorizedError(
+      'Refresh token secret not found in environment variables'
+    );
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    return decoded;
+  } catch (error) {
+    throw new UnauthorizedError('Invalid or expired refresh token');
+  }
+};
+
+const isRefreshTokenPayload = (
+  payload: string | jwt.JwtPayload
+): payload is RefreshTokenPayload => {
+  return (
+    typeof payload === 'object' &&
+    !!payload &&
+    'jti' in payload &&
+    'userUid' in payload
+  );
+};
+
+const getDecodedObject = (
+  decoded: string | jwt.JwtPayload
+): RefreshTokenPayload => {
+  if (!isRefreshTokenPayload(decoded)) {
+    throw new ValueError('Invalid refresh token payload');
+  }
+
+  const { jti, userUid, rememberMe } = decoded;
+
+  return { jti, userUid, rememberMe };
 };

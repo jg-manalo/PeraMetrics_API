@@ -43,7 +43,6 @@ export const getTransactions = async (
     const filters: TransactionQuery = req.query;
     const transactions = await fetchTransactions(userUid, filters);
 
-    console.log('Fetched transactions:', transactions);
     res.status(200).json({
       message: 'Transactions fetched successfully',
       data: transactionResource(transactions),

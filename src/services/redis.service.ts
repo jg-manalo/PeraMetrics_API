@@ -14,6 +14,19 @@ export const cache = async (
   }
 };
 
+export const revokeCachePipeline = async (pattern: string): Promise<void> => {
+  const keys = await redisClient.keys(pattern);
+
+  if (keys.length > 0) {
+    const pipeline = redisClient.multi();
+
+    for (const key of keys) {
+      pipeline.del(key);
+    }
+    await pipeline.exec();
+  }
+};
+
 export const revokeCache = async (key: string): Promise<void> => {
   const result = await redisClient.del(key);
 

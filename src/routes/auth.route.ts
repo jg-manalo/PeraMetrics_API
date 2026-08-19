@@ -10,6 +10,7 @@ import {
 import { validateData } from '../middlewares/validator.js';
 import { userValidation } from '../validations/user.validation.js';
 import { updatePasswordValidation } from '../validations/user.validation.js';
+
 const router = express.Router();
 
 router.post('/register', validateData(userValidation), registerUser);

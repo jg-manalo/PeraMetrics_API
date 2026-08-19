@@ -6,12 +6,12 @@ import userRoutes from './routes/user.route.js';
 import moneysourceRoutes from './routes/moneysource.route.js';
 import transactionRoutes from './routes/transaction.route.js';
 import limiter from './middlewares/limiter.js';
-import { connectRedis } from './config/redis.js';
 import { errorHandler } from './middlewares/error.handler.js';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import logger from './config/logger.js';
 import morgan from 'morgan';
+import { connectRedis } from './config/redis.js';
 
 const app: Express = express();
 
@@ -34,7 +34,7 @@ app.use(
   })
 );
 
-connectRedis();
+await connectRedis();
 
 app.get('/', (req: Request, res: Response) => {
   res.send('PeraMetrics API is running successfully!');

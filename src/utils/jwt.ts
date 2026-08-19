@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { NotFoundError } from '../errors/errors.js';
-import { cache } from '../services/redis.service.js';
+import { cache, revokeCachePipeline } from '../services/redis.service.js';
 import crypto from 'crypto';
 import { revokeCache } from '../services/redis.service.js';
 import type { Response } from 'express';
@@ -57,25 +57,34 @@ export const persistShortLivedToken = async (
   jti: string
 ): Promise<void> => {
   const tokenHash = hashToken(refreshToken);
-  await cache(`refreshToken:${tokenHash}:${jti}`, userUid, {
+  await cache(`sessions:${userUid}:${jti}`, tokenHash, {
     EX: oneHourInSeconds,
   });
 };
+
 export const persistRefreshToken = async (
   userUid: string,
   refreshToken: string,
   jti: string
 ): Promise<void> => {
   const tokenHash = hashToken(refreshToken);
-  await cache(`refreshToken:${tokenHash}:${jti}`, userUid, {
+  await cache(`sessions:${userUid}:${jti}`, tokenHash, {
     EX: thirtyDaysInSeconds,
   });
 };
+
 export const revokeRefreshToken = async (
-  tokenHash: string,
-  jti: string
+  jti: string,
+  userUid: string
 ): Promise<void> => {
-  revokeCache(`refreshToken:${tokenHash}:${jti}`);
+  await revokeCache(`sessions:${userUid}:${jti}`);
+};
+
+export const revokeAllRefreshTokens = async (
+  userUid: string
+): Promise<void> => {
+  const pattern = `sessions:${userUid}:*`;
+  await revokeCachePipeline(pattern);
 };
 
 export const setRefreshTokenCookie = (
@@ -103,29 +112,29 @@ export const setRefreshTokenCookie = (
   }
 };
 
-// TODO: better condition handling
 export const rotateRefreshToken = async (
   jti: string,
   userUid: string,
   res: Response,
-  tokenHash: string,
   rememberedMe: boolean
 ): Promise<string> => {
-  await revokeRefreshToken(tokenHash, jti);
+  await revokeRefreshToken(jti, userUid);
   const newJti = createJti();
   const sessionOnly = false;
 
-  const newRefreshToken =
-    rememberedMe === true
-      ? generateRefreshToken(userUid, newJti, rememberedMe)
-      : generateRefreshToken(userUid, newJti, sessionOnly);
+  const newAccessToken = generateAccessToken(userUid);
 
-  const persistPromise =
-    rememberedMe === true
-      ? await persistRefreshToken(userUid, newRefreshToken, newJti)
-      : await persistShortLivedToken(userUid, newRefreshToken, newJti);
+  const newRefreshToken = rememberedMe
+    ? generateRefreshToken(userUid, newJti, rememberedMe)
+    : generateRefreshToken(userUid, newJti, sessionOnly);
+
+  if (rememberedMe) {
+    await persistRefreshToken(userUid, newRefreshToken, newJti);
+  } else {
+    await persistShortLivedToken(userUid, newRefreshToken, newJti);
+  }
 
   setRefreshTokenCookie(res, newRefreshToken);
 
-  return newRefreshToken;
+  return newAccessToken;
 };
