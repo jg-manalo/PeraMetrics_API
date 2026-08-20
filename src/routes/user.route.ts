@@ -11,12 +11,7 @@ import express from 'express';
 
 const router = express.Router();
 
-router.get(
-  '/:uid',
-  verifyToken,
-  checkAuthorizationForUserCredentials,
-  getUserByUuid
-);
+router.get('/me', verifyToken, getUserByUuid);
 router.put(
   '/:uid',
   verifyToken,
