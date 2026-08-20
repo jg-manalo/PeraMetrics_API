@@ -10,6 +10,7 @@ import {
 import { validateData } from '../middlewares/validator.js';
 import { userValidation } from '../validations/user.validation.js';
 import { updatePasswordValidation } from '../validations/user.validation.js';
+import { verifyToken } from '../middlewares/verify.token.js';
 
 const router = express.Router();
 
@@ -22,6 +23,6 @@ router.post(
   resetPassword
 );
 router.post('/refresh', refreshToken);
-router.post('/logout', logoutUser);
+router.post('/logout', verifyToken, logoutUser);
 
 export default router;
