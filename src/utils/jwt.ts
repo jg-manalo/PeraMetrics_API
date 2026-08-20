@@ -99,7 +99,7 @@ export const setRefreshTokenCookie = (
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? 'strict' : 'lax',
-      path: '/api/auth/refresh',
+      path: '/api/auth/',
       maxAge: thirtyDaysInSeconds * 1000, // Convert to milliseconds
     });
   } else {
@@ -107,7 +107,7 @@ export const setRefreshTokenCookie = (
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? 'strict' : 'lax',
-      path: '/api/auth/refresh',
+      path: '/api/auth/',
     });
   }
 };
