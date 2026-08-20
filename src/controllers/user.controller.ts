@@ -18,13 +18,12 @@ type UserRequest<TParams extends ParamsDictionary> = AuthenticatedRequest<
 >;
 
 export const getUserByUuid = async (
-  req: Request<{ uid: string }>,
+  req: UserRequest<{}>,
   res: APIResponse<UserResource>,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { uid } = req.params;
-
+    const uid = req.user.userUid;
     const user = await findUserByUuid(uid);
 
     res.status(200).json({
