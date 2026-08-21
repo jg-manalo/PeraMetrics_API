@@ -13,6 +13,8 @@ export type APISimpleResponse = Response<
 
 export type AuthTokenPayload = jwt.JwtPayload & {
   userUid: string;
+  name: string;
+  email: string;
 };
 
 export type AuthenticatedRequest<
