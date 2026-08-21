@@ -163,7 +163,7 @@ export const logoutUser = async (
     }
 
     await revokeRefreshToken(jti, userUid);
-    res.clearCookie('refreshToken', { path: '/api/auth/refresh' });
+    res.clearCookie('refreshToken', { path: '/api/auth/' });
 
     res.status(200).json({
       message: 'Logout successful',
