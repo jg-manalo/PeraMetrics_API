@@ -66,11 +66,11 @@ export const registerUser = async (
   }
 };
 
-export const getUserFromToken = async (
+export const getUserWithToken = async (
   req: Request,
   res: APIResponse<AuthTokenPayload>,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const user: AuthTokenPayload = {
       userUid: req.user.userUid,
@@ -78,9 +78,12 @@ export const getUserFromToken = async (
       email: req.user.email,
     };
 
+    const accessToken = req.headers['authorization']?.split(' ')[1];
+
     res.status(200).json({
       message: 'User retrieved successfully',
       data: user,
+      token: accessToken,
     });
   } catch (error) {
     next(error);
@@ -163,7 +166,7 @@ export const logoutUser = async (
     }
 
     await revokeRefreshToken(jti, userUid);
-    res.clearCookie('refreshToken', { path: '/api/auth/refresh' });
+    res.clearCookie('refreshToken', { path: '/api/auth/' });
 
     res.status(200).json({
       message: 'Logout successful',
