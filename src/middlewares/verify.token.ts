@@ -7,7 +7,11 @@ import logger from '../config/logger.js';
 const isAuthTokenPayload = (
   payload: string | jwt.JwtPayload
 ): payload is AuthTokenPayload => {
-  return typeof payload === 'object' && !!payload && 'userUid' in payload;
+  return (
+    typeof payload === 'object' &&
+    !!payload &&
+    ['userUid', 'name', 'email'].every(key => key in payload)
+  );
 };
 
 export const verifyToken = (

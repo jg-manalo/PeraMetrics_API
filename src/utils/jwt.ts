@@ -4,24 +4,32 @@ import { cache, revokeCachePipeline } from '../services/redis.service.js';
 import crypto from 'crypto';
 import { revokeCache } from '../services/redis.service.js';
 import type { Response } from 'express';
+import type { User } from '../types/user.js';
+import { longTermTTL, shortTermTTL } from './ttl.js';
 
 const accessTokenSecret = process.env.JWT_SECRET;
 const accessTokenExpiration = '15m';
 const refreshTokenExpiration = '30d';
 const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
-const thirtyDaysInSeconds = 30 * 24 * 60 * 60;
-const oneHourInSeconds = 1 * 60 * 60;
 
 export const hashToken = (token: string): string => {
   return crypto.createHash('sha256').update(token).digest('hex');
 };
 
-export const generateAccessToken = (userUid: string): string => {
+export const generateAccessToken = (
+  user: Pick<User, 'uid' | 'email' | 'name'>
+): string => {
   if (!accessTokenSecret) {
     throw new NotFoundError('JWT_SECRET is not defined');
   }
 
-  return jwt.sign({ userUid: userUid }, accessTokenSecret, {
+  const payload = {
+    userUid: user.uid,
+    name: user.name,
+    email: user.email,
+  };
+
+  return jwt.sign(payload, accessTokenSecret, {
     expiresIn: accessTokenExpiration,
   });
 };
@@ -45,31 +53,30 @@ export const generateRefreshToken = (
   };
 
   const token = jwt.sign(payload, refreshTokenSecret, {
-    expiresIn: rememberMe ? refreshTokenExpiration : oneHourInSeconds,
+    expiresIn: rememberMe ? refreshTokenExpiration : shortTermTTL,
   });
 
   return token;
 };
 
-export const persistShortLivedToken = async (
-  userUid: string,
-  refreshToken: string,
-  jti: string
-): Promise<void> => {
-  const tokenHash = hashToken(refreshToken);
-  await cache(`sessions:${userUid}:${jti}`, tokenHash, {
-    EX: oneHourInSeconds,
-  });
-};
-
 export const persistRefreshToken = async (
-  userUid: string,
+  user: Pick<User, 'uid' | 'email' | 'name'>,
   refreshToken: string,
-  jti: string
+  jti: string,
+  ttl: number
 ): Promise<void> => {
   const tokenHash = hashToken(refreshToken);
-  await cache(`sessions:${userUid}:${jti}`, tokenHash, {
-    EX: thirtyDaysInSeconds,
+
+  const payload = JSON.stringify({
+    user: {
+      uid: user.uid,
+      email: user.email,
+      name: user.name,
+    },
+    tokenHash: tokenHash,
+  });
+  await cache(`sessions:${user.uid}:${jti}`, payload, {
+    EX: ttl,
   });
 };
 
@@ -100,7 +107,7 @@ export const setRefreshTokenCookie = (
       secure: isProd,
       sameSite: isProd ? 'strict' : 'lax',
       path: '/api/auth/',
-      maxAge: thirtyDaysInSeconds * 1000, // Convert to milliseconds
+      maxAge: longTermTTL * 1000, // Convert to milliseconds
     });
   } else {
     res.cookie('refreshToken', refreshToken, {
@@ -114,24 +121,24 @@ export const setRefreshTokenCookie = (
 
 export const rotateRefreshToken = async (
   jti: string,
-  userUid: string,
+  user: Pick<User, 'uid' | 'email' | 'name'>,
   res: Response,
   rememberedMe: boolean
 ): Promise<string> => {
-  await revokeRefreshToken(jti, userUid);
+  await revokeRefreshToken(jti, user.uid);
   const newJti = createJti();
   const sessionOnly = false;
 
-  const newAccessToken = generateAccessToken(userUid);
+  const newAccessToken = generateAccessToken(user);
 
   const newRefreshToken = rememberedMe
-    ? generateRefreshToken(userUid, newJti, rememberedMe)
-    : generateRefreshToken(userUid, newJti, sessionOnly);
+    ? generateRefreshToken(user.uid, newJti, rememberedMe)
+    : generateRefreshToken(user.uid, newJti, sessionOnly);
 
   if (rememberedMe) {
-    await persistRefreshToken(userUid, newRefreshToken, newJti);
+    await persistRefreshToken(user, newRefreshToken, newJti, longTermTTL);
   } else {
-    await persistShortLivedToken(userUid, newRefreshToken, newJti);
+    await persistRefreshToken(user, newRefreshToken, newJti, shortTermTTL);
   }
 
   setRefreshTokenCookie(res, newRefreshToken);

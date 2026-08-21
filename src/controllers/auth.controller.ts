@@ -9,7 +9,6 @@ import {
   setRefreshTokenCookie,
   hashToken,
   revokeRefreshToken,
-  persistShortLivedToken,
 } from '../utils/jwt.js';
 import { GoneError, UnauthorizedError, ValueError } from '../errors/errors.js';
 import {
@@ -21,7 +20,7 @@ import {
 import { sendEmail } from '../services/mail.service.js';
 import type { Request, NextFunction } from 'express';
 import type { User } from '../types/user.js';
-import type { APIResponse } from '../types/api.js';
+import type { APIResponse, AuthTokenPayload } from '../types/api.js';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import {
@@ -29,12 +28,23 @@ import {
   createJti,
   rotateRefreshToken,
 } from '../utils/jwt.js';
+import { shortTermTTL, longTermTTL } from '../utils/ttl.js';
 import jwt from 'jsonwebtoken';
 
 type RefreshTokenPayload = jwt.JwtPayload & {
   jti: string;
   userUid: string;
   rememberMe: boolean;
+  accessToken: string;
+};
+
+type UserCache = {
+  user: {
+    uid: string;
+    email: string;
+    name: string;
+  };
+  tokenHash: string;
 };
 
 export const registerUser = async (
@@ -56,6 +66,26 @@ export const registerUser = async (
   }
 };
 
+export const getUserFromToken = async (
+  req: Request,
+  res: APIResponse<AuthTokenPayload>,
+  next: NextFunction
+) => {
+  try {
+    const user: AuthTokenPayload = {
+      userUid: req.user.userUid,
+      name: req.user.name,
+      email: req.user.email,
+    };
+
+    res.status(200).json({
+      message: 'User retrieved successfully',
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 export const loginUser = async (
   req: Request<
     {},
@@ -78,17 +108,17 @@ export const loginUser = async (
       throw new UnauthorizedError('Invalid email or password');
     }
 
-    const token = generateAccessToken(user.uid);
+    const token = generateAccessToken(user);
     const jti = createJti();
     const refreshToken = generateRefreshToken(user.uid, jti, rememberMe);
 
     if (rememberMe) {
       const isPersistent = true;
-      await persistRefreshToken(user.uid, refreshToken, jti);
+      await persistRefreshToken(user, refreshToken, jti, longTermTTL);
       setRefreshTokenCookie(res, refreshToken, isPersistent);
     } else {
       setRefreshTokenCookie(res, refreshToken);
-      await persistShortLivedToken(user.uid, refreshToken, jti);
+      await persistRefreshToken(user, refreshToken, jti, shortTermTTL);
     }
 
     res.status(200).json({
@@ -116,7 +146,16 @@ export const logoutUser = async (
     const decoded = decodeRefreshToken(token);
     const { jti, userUid } = getDecodedObject(decoded);
 
-    const tokenFromSession = await lookupCache(`sessions:${userUid}:${jti}`);
+    const cache = await lookupCache(`sessions:${userUid}:${jti}`);
+    const tokenFromSession: UserCache['tokenHash'] | null = cache
+      ? JSON.parse(cache).tokenHash
+      : null;
+
+    if (!tokenFromSession) {
+      throw new UnauthorizedError(
+        'Refresh token has already been revoked or expired'
+      );
+    }
 
     if (tokenFromSession !== tokenHash) {
       await revokeRefreshToken(jti, userUid);
@@ -153,21 +192,23 @@ export const refreshToken = async (
     const tokenHash = hashToken(token);
 
     const redisKey = `sessions:${userUid}:${jti}`;
-    const refreshTokenFromSession = await lookupCache(redisKey);
+    const cache = await lookupCache(redisKey);
 
-    if (!refreshTokenFromSession) {
+    const cachePayload: UserCache | null = cache ? JSON.parse(cache) : null;
+
+    if (!cachePayload?.tokenHash) {
       await revokeCache(redisKey);
       throw new UnauthorizedError('Refresh token has been revoked or expired');
     }
 
-    if (tokenHash !== refreshTokenFromSession) {
+    if (tokenHash !== cachePayload.tokenHash) {
       await revokeCache(redisKey);
       throw new UnauthorizedError('Refresh token does not match');
     }
 
     const newAccessToken = await rotateRefreshToken(
       jti,
-      userUid,
+      cachePayload.user,
       res,
       rememberMe
     );
@@ -284,7 +325,7 @@ const getDecodedObject = (
     throw new ValueError('Invalid refresh token payload');
   }
 
-  const { jti, userUid, rememberMe } = decoded;
+  const { jti, userUid, rememberMe, accessToken } = decoded;
 
-  return { jti, userUid, rememberMe };
+  return { jti, userUid, rememberMe, accessToken };
 };
