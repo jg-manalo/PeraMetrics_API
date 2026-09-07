@@ -9,6 +9,8 @@ export type UserResource = Omit<User, 'password' | 'id'> & {
   expenses?: number;
   income?: number;
   transfers?: number;
+  netBalance?: number;
+  recentTransactions?: Transaction[];
 };
 
 export type TransactionReportResource = {
