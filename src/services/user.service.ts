@@ -138,7 +138,15 @@ export const findUserByUuid = async (
             amount: true,
           },
         },
-        transactions: true,
+        transactions: {
+          where: {
+            date: {
+              gte: new Date(
+                new Date().setMonth(new Date().getMonth() - 1)
+              ).toISOString(),
+            },
+          },
+        },
       },
     });
 
