@@ -1,6 +1,6 @@
 import { db } from '../config/database.js';
 import { transactions } from '../models/transactions.js';
-import { eq, and, AnyColumn } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import {
   updateMoneySourceBalance,
   getMoneySourceByUuid,
@@ -12,8 +12,10 @@ import type {
   TransactionTransferPayload,
 } from '../types/transaction.js';
 import type { TransactionQuery } from '../types/queries.js';
-import logger from '../config/logger.js';
 import { MoneySource } from '../types/moneysource.js';
+import logger from '../config/logger.js';
+import { pagination } from '../utils/pagination.js';
+import { sortColumns } from '../utils/sortcolumns.js';
 
 type TransactionReport = Transaction & {
   source: {
@@ -30,14 +32,10 @@ export const fetchTransactions = async (
   filters: TransactionQuery
 ): Promise<Transaction[]> => {
   try {
-    const page: number = filters.page ?? 1;
-    const pageLimit: number = 5;
-    const offset: number = (page - 1) * pageLimit;
+    const { pageLimit, offset } = pagination(filters.page);
     const categoryFilter: Transaction['category'] | undefined =
       filters.category;
 
-    // FIXME: iba yung handling sa to and from since sa uid magbabase pag directly sa column instead sa relationship. Mahirap pala
-    // TODO: refactor this to use a utility function for pagination and sorting
     const sortableColumns = {
       name: 'name',
       amount: 'amount',
@@ -47,34 +45,8 @@ export const fetchTransactions = async (
       transferDestination: 'transferDestination',
     } as const;
 
-    const sortableColumnsFromRelationships = {
-      to: 'name',
-      source: 'name',
-    } as const;
+    const selectedColumn = sortColumns(sortableColumns, filters, 'date');
 
-    type SortableColumn = keyof typeof sortableColumns;
-    type SortableColumnFromRelationships =
-      keyof typeof sortableColumnsFromRelationships;
-
-    const isSortableColumnFromRelationships = (
-      value: string
-    ): value is SortableColumnFromRelationships =>
-      value in sortableColumnsFromRelationships;
-
-    const isSortableColumn = (value: string): value is SortableColumn =>
-      value in sortableColumns;
-
-    const selectedColumn = isSortableColumn(filters.orderBy)
-      ? sortableColumns[filters.orderBy]
-      : 'date';
-
-    const selectedColumnFromRelationships = isSortableColumnFromRelationships(
-      filters.orderBy
-    )
-      ? sortableColumnsFromRelationships[filters.orderBy]
-      : selectedColumn;
-
-    console.log('selectedColumn:', selectedColumnFromRelationships);
     const results = await db.query.transactions.findMany({
       where: {
         user: userUid,

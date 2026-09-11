@@ -2,10 +2,11 @@ import type { User } from '../types/user.js';
 import type { MoneySource } from '../types/moneysource.js';
 import type { DatabaseTransaction } from '../types/databasetransaction.js';
 import { db } from '../config/database.js';
-import { eq, and, or, desc, asc } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { moneySources } from '../models/moneysources.js';
 import type { DataQuery } from '../types/queries.js';
-import type { AnyColumn } from 'drizzle-orm';
+import { pagination } from '../utils/pagination.js';
+import { sortColumns } from '../utils/sortcolumns.js';
 
 import {
   NotFoundError,
@@ -15,37 +16,32 @@ import {
 } from '../errors/errors.js';
 import logger from '../config/logger.js';
 
-const getMoneySourcesFromUser = async (userUid: string, query: DataQuery) => {
+export const getMoneySourcesFromUser = async (
+  userUid: string,
+  filters: DataQuery
+) => {
   try {
-    // TODO: can be refactored to use a utility function for pagination
-    const pageLimit = 10;
-    const page = query.page ? query.page : 1;
-    const offset = (page - 1) * pageLimit;
+    const { pageLimit, offset } = pagination(filters.page);
 
-    const columnMap: Record<string, AnyColumn> = {
-      name: moneySources.name,
-      amount: moneySources.amount,
-      createdAt: moneySources.createdAt,
-    };
+    const sortableColumns = {
+      name: 'name',
+      amount: 'amount',
+      createdAt: 'createdAt',
+    } as const;
 
-    const sortColumn = columnMap[query.orderBy] || moneySources.createdAt;
-    const orderFn = query.direction === 'asc' ? asc : desc;
-
-    const sources = await db
-      .select()
-      .from(moneySources)
-      .where(
-        or(
-          eq(moneySources.user, userUid),
-          and(
-            eq(moneySources.name, query.entity),
-            eq(moneySources.user, userUid)
-          )
-        )
-      )
-      .orderBy(orderFn(sortColumn))
-      .limit(pageLimit)
-      .offset(offset);
+    console.log('filters entity:', filters.entity);
+    const selectedColumn = sortColumns(sortableColumns, filters, 'createdAt');
+    const sources = await db.query.moneySources.findMany({
+      where: {
+        user: userUid,
+        name: filters.entity ? { like: `%${filters.entity}%` } : undefined,
+      },
+      orderBy: {
+        [selectedColumn]: filters.direction === 'asc' ? 'asc' : 'desc',
+      },
+      limit: pageLimit,
+      offset: offset,
+    });
     return sources;
   } catch (error) {
     logger.error(`Error fetching money sources: ${error}`);
