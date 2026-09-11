@@ -12,8 +12,10 @@ import type {
   TransactionTransferPayload,
 } from '../types/transaction.js';
 import type { TransactionQuery } from '../types/queries.js';
-import logger from '../config/logger.js';
 import { MoneySource } from '../types/moneysource.js';
+import logger from '../config/logger.js';
+import { pagination } from '../utils/pagination.js';
+import { sortColumns } from '../utils/sortcolumns.js';
 
 type TransactionReport = Transaction & {
   source: {
@@ -30,12 +32,20 @@ export const fetchTransactions = async (
   filters: TransactionQuery
 ): Promise<Transaction[]> => {
   try {
-    const page: number = filters.page ?? 1;
-    const order: 'asc' | 'desc' = filters.orderBy ?? 'desc';
-    const pageLimit: number = 10;
-    const offset: number = (page - 1) * pageLimit;
+    const { pageLimit, offset } = pagination(filters.page);
     const categoryFilter: Transaction['category'] | undefined =
       filters.category;
+
+    const sortableColumns = {
+      name: 'name',
+      amount: 'amount',
+      date: 'date',
+      category: 'category',
+      moneySource: 'moneySource',
+      transferDestination: 'transferDestination',
+    } as const;
+
+    const selectedColumn = sortColumns(sortableColumns, filters, 'date');
 
     const results = await db.query.transactions.findMany({
       where: {
@@ -43,7 +53,7 @@ export const fetchTransactions = async (
         category: categoryFilter ? categoryFilter : undefined,
       },
       orderBy: {
-        date: order,
+        [selectedColumn]: filters.direction === 'asc' ? 'asc' : 'desc',
       },
       with: {
         source: {

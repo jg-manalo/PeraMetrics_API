@@ -8,7 +8,8 @@ import type { User } from '../types/user.js';
 import { longTermTTL, shortTermTTL } from './ttl.js';
 
 const accessTokenSecret = process.env.JWT_SECRET;
-const accessTokenExpiration = '15m';
+const accessTokenExpiration =
+  process.env.NODE_ENV === 'production' ? '15m' : '30d';
 const refreshTokenExpiration = '30d';
 const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET;
 

@@ -3,6 +3,7 @@ import {
   createMoneySource,
   deleteMoneySource,
   editMoneySource,
+  getAllMoneySources,
 } from '../controllers/moneysource.controller.js';
 import { verifyToken } from '../middlewares/verify.token.js';
 import { validateData } from '../middlewares/validator.js';
@@ -11,6 +12,7 @@ import express from 'express';
 
 const router: Router = express.Router();
 
+router.get('/', verifyToken, getAllMoneySources);
 router.post(
   '/',
   verifyToken,
@@ -23,6 +25,7 @@ router.put(
   validateData(moneySourceValidation),
   editMoneySource
 );
+
 router.delete('/:uid', verifyToken, deleteMoneySource);
 
 export default router;

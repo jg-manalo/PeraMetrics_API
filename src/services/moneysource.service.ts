@@ -4,6 +4,10 @@ import type { DatabaseTransaction } from '../types/databasetransaction.js';
 import { db } from '../config/database.js';
 import { eq, and } from 'drizzle-orm';
 import { moneySources } from '../models/moneysources.js';
+import type { DataQuery } from '../types/queries.js';
+import { pagination } from '../utils/pagination.js';
+import { sortColumns } from '../utils/sortcolumns.js';
+
 import {
   NotFoundError,
   DuplicateError,
@@ -12,6 +16,38 @@ import {
 } from '../errors/errors.js';
 import logger from '../config/logger.js';
 
+export const getMoneySourcesFromUser = async (
+  userUid: string,
+  filters: DataQuery
+) => {
+  try {
+    const { pageLimit, offset } = pagination(filters.page);
+
+    const sortableColumns = {
+      name: 'name',
+      amount: 'amount',
+      createdAt: 'createdAt',
+    } as const;
+
+    console.log('filters entity:', filters.entity);
+    const selectedColumn = sortColumns(sortableColumns, filters, 'createdAt');
+    const sources = await db.query.moneySources.findMany({
+      where: {
+        user: userUid,
+        name: filters.entity ? { like: `%${filters.entity}%` } : undefined,
+      },
+      orderBy: {
+        [selectedColumn]: filters.direction === 'asc' ? 'asc' : 'desc',
+      },
+      limit: pageLimit,
+      offset: offset,
+    });
+    return sources;
+  } catch (error) {
+    logger.error(`Error fetching money sources: ${error}`);
+    throw error;
+  }
+};
 export const generateMoneySource = async (
   name: string,
   userUid: User['uid'],

@@ -8,10 +8,42 @@ import type { AuthenticatedRequest } from '../types/api.js';
 import type { ParamsDictionary } from 'express-serve-static-core';
 import type { APIResponse } from '../types/api.js';
 import type { MoneySource } from '../types/moneysource.js';
+import type { ParsedQs } from 'qs';
+import { getMoneySourcesFromUser } from '../services/moneysource.service.js';
+
+type MoneySourceQuery = ParsedQs & {
+  orderBy: string;
+  direction: 'asc' | 'desc';
+  entity: string | '';
+  page: number;
+};
 
 type MoneySourceRequest<TParams extends ParamsDictionary> =
   AuthenticatedRequest<TParams, { name: string; initialAmount?: string }, {}>;
 
+type MoneySourceGetRequest<TParams extends ParamsDictionary> =
+  AuthenticatedRequest<TParams, {}, MoneySourceQuery>;
+
+export const getAllMoneySources = async (
+  req: MoneySourceGetRequest<{}>,
+  res: APIResponse<MoneySource[]>,
+  next: NextFunction
+) => {
+  try {
+    const userUid = req.user.userUid;
+
+    const filters: MoneySourceQuery = req.query;
+
+    const moneySources = await getMoneySourcesFromUser(userUid, filters);
+
+    res.status(200).json({
+      message: 'Money sources fetched successfully',
+      data: moneySources,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 export const createMoneySource = async (
   req: MoneySourceRequest<{}>,
   res: APIResponse<Partial<MoneySource> | undefined>,
