@@ -6,6 +6,7 @@ const PORT = process.env.PORT || 3000;
 const startServer = async () => {
   try {
     const server = app.listen(PORT, () => {
+      console.log(`Node environment: ${process.env.NODE_ENV}`);
       console.log(`PeraMetrics API running on port ${PORT}`);
     });
 

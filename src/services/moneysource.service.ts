@@ -2,8 +2,11 @@ import type { User } from '../types/user.js';
 import type { MoneySource } from '../types/moneysource.js';
 import type { DatabaseTransaction } from '../types/databasetransaction.js';
 import { db } from '../config/database.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or, desc, asc } from 'drizzle-orm';
 import { moneySources } from '../models/moneysources.js';
+import type { DataQuery } from '../types/queries.js';
+import type { AnyColumn } from 'drizzle-orm';
+
 import {
   NotFoundError,
   DuplicateError,
@@ -12,6 +15,43 @@ import {
 } from '../errors/errors.js';
 import logger from '../config/logger.js';
 
+const getMoneySourcesFromUser = async (userUid: string, query: DataQuery) => {
+  try {
+    // TODO: can be refactored to use a utility function for pagination
+    const pageLimit = 10;
+    const page = query.page ? query.page : 1;
+    const offset = (page - 1) * pageLimit;
+
+    const columnMap: Record<string, AnyColumn> = {
+      name: moneySources.name,
+      amount: moneySources.amount,
+      createdAt: moneySources.createdAt,
+    };
+
+    const sortColumn = columnMap[query.orderBy] || moneySources.createdAt;
+    const orderFn = query.direction === 'asc' ? asc : desc;
+
+    const sources = await db
+      .select()
+      .from(moneySources)
+      .where(
+        or(
+          eq(moneySources.user, userUid),
+          and(
+            eq(moneySources.name, query.entity),
+            eq(moneySources.user, userUid)
+          )
+        )
+      )
+      .orderBy(orderFn(sortColumn))
+      .limit(pageLimit)
+      .offset(offset);
+    return sources;
+  } catch (error) {
+    logger.error(`Error fetching money sources: ${error}`);
+    throw error;
+  }
+};
 export const generateMoneySource = async (
   name: string,
   userUid: User['uid'],

@@ -11,8 +11,8 @@ import {
 import { users } from './users.js';
 import { moneySources } from './moneysources.js';
 export const categoryEnum = pgEnum('transaction_category', [
-  'INCOME',
   'EXPENSE',
+  'INCOME',
   'TRANSFER',
 ]);
 
