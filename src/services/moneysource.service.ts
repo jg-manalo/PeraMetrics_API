@@ -134,9 +134,7 @@ export const editMoneySourceName = async (
       );
     }
 
-    // problem only checks that source name not the whole table
-
-    if (await isExistingMoneySourceName(sourceName)) {
+    if (await isExistingMoneySourceName(sourceName, userUid)) {
       throw new DuplicateError('Money source with this name already exists');
     }
 
@@ -236,10 +234,14 @@ export const updateMoneySourceBalance = async (
   }
 };
 
-const isExistingMoneySourceName = async (name: string): Promise<boolean> => {
+const isExistingMoneySourceName = async (
+  name: string,
+  userUid: User['uid']
+): Promise<boolean> => {
   const existingSource = await db.query.moneySources.findFirst({
     where: {
       name: name.trim().toUpperCase(),
+      user: userUid,
     },
   });
 
