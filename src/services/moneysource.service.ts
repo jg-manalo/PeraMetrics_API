@@ -7,6 +7,7 @@ import { moneySources } from '../models/moneysources.js';
 import type { DataQuery } from '../types/queries.js';
 import { pagination } from '../utils/pagination.js';
 import { sortColumns } from '../utils/sortcolumns.js';
+import { inArray } from 'drizzle-orm';
 
 import {
   NotFoundError,
@@ -231,6 +232,24 @@ export const updateMoneySourceBalance = async (
   } catch (error) {
     logger.error(`Error updating money source balance: ${error}`);
     throw error;
+  }
+};
+
+export const bulkDeleteMoneySources = async (
+  uids: string[],
+  userUid: User['uid']
+): Promise<void> => {
+  try {
+    if (uids.length === 0) {
+      throw new ValueError('No money source UIDs provided for deletion');
+    }
+    await db
+      .delete(moneySources)
+      .where(
+        and(eq(moneySources.user, userUid), inArray(moneySources.uid, uids))
+      );
+  } catch (error) {
+    logger.error(`Error bulk deleting money sources: ${error}`);
   }
 };
 

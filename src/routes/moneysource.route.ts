@@ -4,6 +4,7 @@ import {
   deleteMoneySource,
   editMoneySource,
   getAllMoneySources,
+  multiDeleteMoneySources,
 } from '../controllers/moneysource.controller.js';
 import { verifyToken } from '../middlewares/verify.token.js';
 import { validateData } from '../middlewares/validator.js';
@@ -25,6 +26,8 @@ router.put(
   validateData(moneySourceValidation),
   editMoneySource
 );
+
+router.delete('/bulk-delete', verifyToken, multiDeleteMoneySources);
 
 router.delete('/:uid', verifyToken, deleteMoneySource);
 

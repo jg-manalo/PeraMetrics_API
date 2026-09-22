@@ -10,7 +10,8 @@ import type { APIResponse } from '../types/api.js';
 import type { MoneySource } from '../types/moneysource.js';
 import type { ParsedQs } from 'qs';
 import { getMoneySourcesFromUser } from '../services/moneysource.service.js';
-
+import { bulkDeleteMoneySources } from '../services/moneysource.service.js';
+import { NotFoundError } from '../errors/errors.js';
 type MoneySourceQuery = ParsedQs & {
   orderBy: string;
   direction: 'asc' | 'desc';
@@ -19,7 +20,11 @@ type MoneySourceQuery = ParsedQs & {
 };
 
 type MoneySourceRequest<TParams extends ParamsDictionary> =
-  AuthenticatedRequest<TParams, { name: string; initialAmount?: string }, {}>;
+  AuthenticatedRequest<
+    TParams,
+    { name?: string; initialAmount?: string; uids?: string[] },
+    {}
+  >;
 
 type MoneySourceGetRequest<TParams extends ParamsDictionary> =
   AuthenticatedRequest<TParams, {}, MoneySourceQuery>;
@@ -53,6 +58,10 @@ export const createMoneySource = async (
     const { name, initialAmount } = req.body;
     const userUid = req.user?.userUid;
 
+    if (!name) {
+      throw new NotFoundError('No name provided for money source creation');
+    }
+
     const newSource = await generateMoneySource(name, userUid, initialAmount);
 
     res.status(201).json({
@@ -73,6 +82,10 @@ export const editMoneySource = async (
     const { uid } = req.params;
     const { name } = req.body;
     const userUid = req.user.userUid;
+
+    if (!name) {
+      throw new NotFoundError('No name provided for money source update');
+    }
 
     const updatedSource = await editMoneySourceName(uid, name, userUid);
 
@@ -99,6 +112,28 @@ export const deleteMoneySource = async (
     res.status(200).json({
       message: 'Money source deleted successfully',
       data: toDelete,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const multiDeleteMoneySources = async (
+  req: MoneySourceRequest<{}>,
+  res: APIResponse<Partial<MoneySource> | undefined>,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { uids } = req.body;
+    const userUid = req.user.userUid;
+
+    if (!uids) {
+      throw new NotFoundError('No money source uids provided for deletion');
+    }
+    await bulkDeleteMoneySources(uids, userUid);
+
+    res.status(200).json({
+      message: 'Multiple money sources deleted successfully',
     });
   } catch (error) {
     next(error);

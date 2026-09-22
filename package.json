@@ -22,7 +22,8 @@
     "start:local": "node --env-file=.env.production dist/src/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx ./src/db/seed.ts"
+    "db:seed": "tsx ./src/db/seed.ts",
+    "db:seed:money-sources": "tsx ./src/db/money-sources-seed.ts"
   },
   "repository": {
     "type": "git",
