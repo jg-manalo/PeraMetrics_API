@@ -7,6 +7,7 @@ import { moneySources } from '../models/moneysources.js';
 import type { DataQuery } from '../types/queries.js';
 import { pagination } from '../utils/pagination.js';
 import { sortColumns } from '../utils/sortcolumns.js';
+import { inArray } from 'drizzle-orm';
 
 import {
   NotFoundError,
@@ -15,11 +16,12 @@ import {
   ValueError,
 } from '../errors/errors.js';
 import logger from '../config/logger.js';
+import { PaginatedData } from '../types/api.js';
 
 export const getMoneySourcesFromUser = async (
   userUid: string,
   filters: DataQuery
-) => {
+): Promise<PaginatedData<MoneySource>> => {
   try {
     const { pageLimit, offset } = pagination(filters.page);
 
@@ -31,18 +33,36 @@ export const getMoneySourcesFromUser = async (
 
     console.log('filters entity:', filters.entity);
     const selectedColumn = sortColumns(sortableColumns, filters, 'createdAt');
-    const sources = await db.query.moneySources.findMany({
-      where: {
-        user: userUid,
-        name: filters.entity ? { like: `%${filters.entity}%` } : undefined,
-      },
-      orderBy: {
-        [selectedColumn]: filters.direction === 'asc' ? 'asc' : 'desc',
-      },
-      limit: pageLimit,
-      offset: offset,
-    });
-    return sources;
+
+    const [count, sources] = await Promise.all([
+      db.query.moneySources.findMany({
+        where: {
+          user: userUid,
+        },
+      }),
+      db.query.moneySources.findMany({
+        where: {
+          user: userUid,
+          name: filters.entity ? { like: `%${filters.entity}%` } : undefined,
+        },
+        orderBy: {
+          [selectedColumn]: filters.direction === 'asc' ? 'asc' : 'desc',
+        },
+        limit: pageLimit,
+        offset: offset,
+      }),
+    ]);
+    return {
+      totalPages: Math.ceil(count.length / pageLimit),
+      canPreviousPage:
+        (offset ? offset > 0 : false) &&
+        Math.ceil(count.length / pageLimit) > 1,
+      canNextPage:
+        (filters.page
+          ? filters.page < Math.ceil(count.length / pageLimit)
+          : true) && Math.ceil(count.length / pageLimit) > 1,
+      data: sources,
+    };
   } catch (error) {
     logger.error(`Error fetching money sources: ${error}`);
     throw error;
@@ -134,9 +154,7 @@ export const editMoneySourceName = async (
       );
     }
 
-    const existingSource = moneySource.name.toUpperCase() === sourceName;
-
-    if (existingSource) {
+    if (await isExistingMoneySourceName(sourceName, userUid)) {
       throw new DuplicateError('Money source with this name already exists');
     }
 
@@ -234,4 +252,36 @@ export const updateMoneySourceBalance = async (
     logger.error(`Error updating money source balance: ${error}`);
     throw error;
   }
+};
+
+export const bulkDeleteMoneySources = async (
+  uids: string[],
+  userUid: User['uid']
+): Promise<void> => {
+  try {
+    if (uids.length === 0) {
+      throw new ValueError('No money source UIDs provided for deletion');
+    }
+    await db
+      .delete(moneySources)
+      .where(
+        and(eq(moneySources.user, userUid), inArray(moneySources.uid, uids))
+      );
+  } catch (error) {
+    logger.error(`Error bulk deleting money sources: ${error}`);
+  }
+};
+
+const isExistingMoneySourceName = async (
+  name: string,
+  userUid: User['uid']
+): Promise<boolean> => {
+  const existingSource = await db.query.moneySources.findFirst({
+    where: {
+      name: name.trim().toUpperCase(),
+      user: userUid,
+    },
+  });
+
+  return Boolean(existingSource);
 };
