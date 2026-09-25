@@ -8,9 +8,13 @@ const seedMoneySources = async (): Promise<void> => {
   const moneySourcesData: MoneySource[] = [];
   const firstUser = await db.query.users.findFirst();
   for (let i = 0; i < 15; i++) {
+    if (!firstUser) {
+      console.error('No users found in the database. Please seed users first.');
+      return;
+    }
     const moneySource: MoneySource = {
       name: faker.finance.accountName().toUpperCase(),
-      user: firstUser?.uid || '',
+      user: firstUser?.uid,
       amount: '0.00',
     };
     moneySourcesData.push(moneySource);

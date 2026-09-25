@@ -16,11 +16,12 @@ import {
   ValueError,
 } from '../errors/errors.js';
 import logger from '../config/logger.js';
+import { PaginatedData } from '../types/api.js';
 
 export const getMoneySourcesFromUser = async (
   userUid: string,
   filters: DataQuery
-) => {
+): Promise<PaginatedData<MoneySource>> => {
   try {
     const { pageLimit, offset } = pagination(filters.page);
 
@@ -32,18 +33,36 @@ export const getMoneySourcesFromUser = async (
 
     console.log('filters entity:', filters.entity);
     const selectedColumn = sortColumns(sortableColumns, filters, 'createdAt');
-    const sources = await db.query.moneySources.findMany({
-      where: {
-        user: userUid,
-        name: filters.entity ? { like: `%${filters.entity}%` } : undefined,
-      },
-      orderBy: {
-        [selectedColumn]: filters.direction === 'asc' ? 'asc' : 'desc',
-      },
-      limit: pageLimit,
-      offset: offset,
-    });
-    return sources;
+
+    const [count, sources] = await Promise.all([
+      db.query.moneySources.findMany({
+        where: {
+          user: userUid,
+        },
+      }),
+      db.query.moneySources.findMany({
+        where: {
+          user: userUid,
+          name: filters.entity ? { like: `%${filters.entity}%` } : undefined,
+        },
+        orderBy: {
+          [selectedColumn]: filters.direction === 'asc' ? 'asc' : 'desc',
+        },
+        limit: pageLimit,
+        offset: offset,
+      }),
+    ]);
+    return {
+      totalPages: Math.ceil(count.length / pageLimit),
+      canPreviousPage:
+        (offset ? offset > 0 : false) &&
+        Math.ceil(count.length / pageLimit) > 1,
+      canNextPage:
+        (filters.page
+          ? filters.page < Math.ceil(count.length / pageLimit)
+          : true) && Math.ceil(count.length / pageLimit) > 1,
+      data: sources,
+    };
   } catch (error) {
     logger.error(`Error fetching money sources: ${error}`);
     throw error;

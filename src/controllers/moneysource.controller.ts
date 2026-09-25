@@ -7,11 +7,13 @@ import type { NextFunction } from 'express';
 import type { AuthenticatedRequest } from '../types/api.js';
 import type { ParamsDictionary } from 'express-serve-static-core';
 import type { APIResponse } from '../types/api.js';
+import type { APIPaginatedResponse } from '../types/api.js';
 import type { MoneySource } from '../types/moneysource.js';
 import type { ParsedQs } from 'qs';
 import { getMoneySourcesFromUser } from '../services/moneysource.service.js';
 import { bulkDeleteMoneySources } from '../services/moneysource.service.js';
 import { NotFoundError } from '../errors/errors.js';
+
 type MoneySourceQuery = ParsedQs & {
   orderBy: string;
   direction: 'asc' | 'desc';
@@ -31,19 +33,26 @@ type MoneySourceGetRequest<TParams extends ParamsDictionary> =
 
 export const getAllMoneySources = async (
   req: MoneySourceGetRequest<{}>,
-  res: APIResponse<MoneySource[]>,
+  res: APIPaginatedResponse<MoneySource>,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const userUid = req.user.userUid;
 
     const filters: MoneySourceQuery = req.query;
 
     const moneySources = await getMoneySourcesFromUser(userUid, filters);
-
+    const currentPage = Number(filters.page) || 1;
     res.status(200).json({
       message: 'Money sources fetched successfully',
-      data: moneySources,
+      totalPages: moneySources.totalPages,
+      previousPage: moneySources.canPreviousPage
+        ? `${process.env.SERVER_URL}/api/moneysources?page=${currentPage - 1}`
+        : null,
+      nextPage: moneySources.canNextPage
+        ? `${process.env.SERVER_URL}/api/moneysources?page=${currentPage + 1}`
+        : null,
+      data: moneySources.data,
     });
   } catch (error) {
     next(error);
