@@ -38,6 +38,7 @@ export const getMoneySourcesFromUser = async (
       db.query.moneySources.findMany({
         where: {
           user: userUid,
+          name: filters.entity ? { like: `%${filters.entity}%` } : undefined,
         },
       }),
       db.query.moneySources.findMany({
