@@ -31,7 +31,6 @@ export const getMoneySourcesFromUser = async (
       createdAt: 'createdAt',
     } as const;
 
-    console.log('filters entity:', filters.entity);
     const selectedColumn = sortColumns(sortableColumns, filters, 'createdAt');
 
     const [count, sources] = await Promise.all([
