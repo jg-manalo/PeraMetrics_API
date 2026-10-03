@@ -5,7 +5,7 @@ import { db } from '../config/database.js';
 import { eq, and } from 'drizzle-orm';
 import { moneySources } from '../models/moneysources.js';
 import type { DataQuery } from '../types/queries.js';
-import { pagination } from '../utils/pagination.js';
+import { pagination, paginationResult } from '../utils/pagination.js';
 import { sortColumns } from '../utils/sortcolumns.js';
 import { inArray } from 'drizzle-orm';
 
@@ -52,17 +52,13 @@ export const getMoneySourcesFromUser = async (
         offset: offset,
       }),
     ]);
-    return {
-      totalPages: Math.ceil(count.length / pageLimit),
-      canPreviousPage:
-        (offset ? offset > 0 : false) &&
-        Math.ceil(count.length / pageLimit) > 1,
-      canNextPage:
-        (filters.page
-          ? filters.page < Math.ceil(count.length / pageLimit)
-          : true) && Math.ceil(count.length / pageLimit) > 1,
-      data: sources,
-    };
+    return paginationResult(
+      count.length,
+      sources,
+      pageLimit,
+      offset,
+      filters.page
+    );
   } catch (error) {
     logger.error(`Error fetching money sources: ${error}`);
     throw error;

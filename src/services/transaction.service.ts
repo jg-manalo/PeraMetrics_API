@@ -1,6 +1,6 @@
 import { db } from '../config/database.js';
 import { transactions } from '../models/transactions.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, asc, desc } from 'drizzle-orm';
 import {
   updateMoneySourceBalance,
   getMoneySourceByUuid,
@@ -14,8 +14,11 @@ import type {
 import type { TransactionQuery } from '../types/queries.js';
 import { MoneySource } from '../types/moneysource.js';
 import logger from '../config/logger.js';
-import { pagination } from '../utils/pagination.js';
-import { sortColumns } from '../utils/sortcolumns.js';
+import { pagination, paginationResult } from '../utils/pagination.js';
+import { sortColumnsViaSQLJoin } from '../utils/sortcolumns.js';
+import { moneySources } from '../models/moneysources.js';
+import { alias } from 'drizzle-orm/pg-core';
+import { PaginatedData } from '../types/api.js';
 
 type TransactionReport = Transaction & {
   source: {
@@ -30,48 +33,66 @@ type TransactionReport = Transaction & {
 export const fetchTransactions = async (
   userUid: string,
   filters: TransactionQuery
-): Promise<Transaction[]> => {
+): Promise<PaginatedData<Partial<Transaction>>> => {
   try {
     const { pageLimit, offset } = pagination(filters.page);
-    const categoryFilter: Transaction['category'] | undefined =
-      filters.category;
+    const originSource = alias(moneySources, 'from');
+    const destinationSource = alias(moneySources, 'to');
+    const orderFn = filters.direction === 'asc' ? asc : desc;
 
     const sortableColumns = {
-      name: 'name',
-      amount: 'amount',
-      date: 'date',
-      category: 'category',
-      moneySource: 'moneySource',
-      transferDestination: 'transferDestination',
+      name: transactions.name,
+      amount: transactions.amount,
+      date: transactions.date,
+      category: transactions.category,
+      from: originSource.name,
+      transferDestination: destinationSource.name,
     } as const;
 
-    const selectedColumn = sortColumns(sortableColumns, filters, 'date');
+    const selectedColumn = sortColumnsViaSQLJoin(
+      sortableColumns,
+      filters,
+      transactions.date
+    );
 
-    const results = await db.query.transactions.findMany({
-      where: {
-        user: userUid,
-        category: categoryFilter ? categoryFilter : undefined,
-      },
-      orderBy: {
-        [selectedColumn]: filters.direction === 'asc' ? 'asc' : 'desc',
-      },
-      with: {
-        source: {
-          columns: {
-            name: true,
-          },
-        },
-        transferTo: {
-          columns: {
-            name: true,
-          },
-        },
-      },
-      limit: pageLimit,
-      offset: offset,
-    });
+    if (!selectedColumn) {
+      throw new ValueError(`Invalid sort column: ${selectedColumn}`);
+    }
 
-    return results;
+    const [count, txnHistory] = await Promise.all([
+      db.query.transactions.findMany({
+        where: {
+          user: userUid,
+        },
+      }),
+      db
+        .select({
+          uid: transactions.uid,
+          date: transactions.date,
+          name: transactions.name,
+          from: originSource.name,
+          to: destinationSource.name,
+          category: transactions.category,
+          amount: transactions.amount,
+        })
+        .from(transactions)
+        .leftJoin(originSource, eq(transactions.moneySource, originSource.uid))
+        .leftJoin(
+          destinationSource,
+          eq(transactions.transferDestination, destinationSource.uid)
+        )
+        .where(eq(transactions.user, userUid))
+        .orderBy(orderFn(selectedColumn))
+        .limit(pageLimit)
+        .offset(offset),
+    ]);
+    return paginationResult(
+      count.length,
+      txnHistory,
+      pageLimit,
+      offset,
+      filters.page
+    );
   } catch (error) {
     logger.error(`Error fetching transactions: ${error}`);
     throw error;
