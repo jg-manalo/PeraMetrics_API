@@ -20,7 +20,7 @@ import type {
 } from '../types/transaction.js';
 import type { ParamsDictionary } from 'express-serve-static-core';
 import type { TransactionQuery } from '../types/queries.js';
-import type { TransactionResource } from '../types/resources.js';
+import type { PaginatedData } from '../types/api.js';
 
 type TransactionRequest<TParams extends ParamsDictionary> =
   AuthenticatedRequest<
@@ -34,7 +34,7 @@ type TransactionRequest<TParams extends ParamsDictionary> =
 
 export const getTransactions = async (
   req: TransactionRequest<{}>,
-  res: APIResponse<TransactionResource[]>,
+  res: APIResponse<PaginatedData<Partial<Transaction>>>,
   next: NextFunction
 ): Promise<void> => {
   try {
@@ -45,7 +45,7 @@ export const getTransactions = async (
 
     res.status(200).json({
       message: 'Transactions fetched successfully',
-      data: transactionResource(transactions),
+      data: transactions,
     });
   } catch (error) {
     next(error);
