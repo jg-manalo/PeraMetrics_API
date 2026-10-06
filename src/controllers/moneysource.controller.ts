@@ -2,6 +2,8 @@ import {
   generateMoneySource,
   editMoneySourceName,
   removeMoneySource,
+  getMoneySourcesFromUser,
+  getMoneySourcesFromUserWithoutPagination,
 } from '../services/moneysource.service.js';
 import type { NextFunction } from 'express';
 import type { AuthenticatedRequest } from '../types/api.js';
@@ -10,7 +12,6 @@ import type { APIResponse } from '../types/api.js';
 import type { APIPaginatedResponse } from '../types/api.js';
 import type { MoneySource } from '../types/moneysource.js';
 import type { ParsedQs } from 'qs';
-import { getMoneySourcesFromUser } from '../services/moneysource.service.js';
 import { bulkDeleteMoneySources } from '../services/moneysource.service.js';
 import { NotFoundError } from '../errors/errors.js';
 
@@ -30,6 +31,26 @@ type MoneySourceRequest<TParams extends ParamsDictionary> =
 
 type MoneySourceGetRequest<TParams extends ParamsDictionary> =
   AuthenticatedRequest<TParams, {}, MoneySourceQuery>;
+
+export const getMoneySourcesAsInput = async (
+  req: MoneySourceGetRequest<{}>,
+  res: APIResponse<Partial<MoneySource>[]>,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userUid = req.user.userUid;
+
+    const moneySources =
+      await getMoneySourcesFromUserWithoutPagination(userUid);
+
+    res.status(200).json({
+      message: 'Money sources fetched successfully',
+      data: moneySources,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const getAllMoneySources = async (
   req: MoneySourceGetRequest<{}>,

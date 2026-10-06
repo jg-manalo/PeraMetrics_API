@@ -4,6 +4,7 @@ import {
   deleteMoneySource,
   editMoneySource,
   getAllMoneySources,
+  getMoneySourcesAsInput,
   multiDeleteMoneySources,
 } from '../controllers/moneysource.controller.js';
 import { verifyToken } from '../middlewares/verify.token.js';
@@ -14,6 +15,7 @@ import express from 'express';
 const router: Router = express.Router();
 
 router.get('/', verifyToken, getAllMoneySources);
+router.get('/input', verifyToken, getMoneySourcesAsInput);
 router.post(
   '/',
   verifyToken,

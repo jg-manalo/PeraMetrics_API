@@ -18,6 +18,21 @@ import {
 import logger from '../config/logger.js';
 import { PaginatedData } from '../types/api.js';
 
+export const getMoneySourcesFromUserWithoutPagination = async (
+  userUid: string
+): Promise<MoneySource[]> => {
+  try {
+    const moneySources = await db.query.moneySources.findMany({
+      where: {
+        user: userUid,
+      },
+    });
+    return moneySources;
+  } catch (error) {
+    logger.error(`Error fetching money sources: ${error}`);
+    throw error;
+  }
+};
 export const getMoneySourcesFromUser = async (
   userUid: string,
   filters: DataQuery
