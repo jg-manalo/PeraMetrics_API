@@ -71,7 +71,9 @@ export const fetchTransactions = async (
           date: transactions.date,
           name: transactions.name,
           from: originSource.name,
+          from_uid: transactions.moneySource,
           to: destinationSource.name,
+          to_uid: destinationSource.uid,
           category: transactions.category,
           amount: transactions.amount,
         })
