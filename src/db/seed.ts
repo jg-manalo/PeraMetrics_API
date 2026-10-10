@@ -6,7 +6,7 @@ import { hashPassword } from '../services/user.service.js';
 import { db } from '../config/database.js';
 
 const main = async () => {
-  await db.execute(`TRUNCATE TABLE USERS RESTART IDENTITY CASCADE;`);
+  await db.execute('TRUNCATE TABLE USERS RESTART IDENTITY CASCADE;');
 
   const userData: (typeof users.$inferInsert)[] = [];
   const moneySourceData: (typeof moneySources.$inferInsert)[] = [];

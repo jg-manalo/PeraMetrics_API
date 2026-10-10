@@ -4,6 +4,7 @@ import { eq, and, asc, desc } from 'drizzle-orm';
 import {
   updateMoneySourceBalance,
   getMoneySourceByUuid,
+  getMoneySourceByUuidThroughTx,
 } from './moneysource.service.js';
 import { NotFoundError, ValueError } from '../errors/errors.js';
 import type { Transaction } from '../types/transaction.js';
@@ -19,6 +20,8 @@ import { sortColumnsViaSQLJoin } from '../utils/sortcolumns.js';
 import { moneySources } from '../models/moneysources.js';
 import { alias } from 'drizzle-orm/pg-core';
 import { PaginatedData } from '../types/api.js';
+import { Decimal } from 'decimal.js';
+import { DatabaseTransaction } from '../types/databasetransaction.js';
 
 type TransactionReport = Transaction & {
   source: {
@@ -28,6 +31,24 @@ type TransactionReport = Transaction & {
   transferTo: {
     name: string;
   } | null;
+};
+
+type EditTransactionPayload = {
+  userUid: string;
+  transactionUid: string;
+  date: string;
+  name: string;
+  category: Transaction['category'];
+  amount: string;
+  from: Transaction['moneySource'];
+  to?: Transaction['transferDestination'];
+};
+
+type AdjustBalanceParams = {
+  tx: DatabaseTransaction;
+  existingTransaction: Transaction;
+  incomingTransaction: EditTransactionPayload;
+  currentBalance: string;
 };
 
 export const fetchTransactions = async (
@@ -165,9 +186,9 @@ export const storeIncome = async (
         .insert(transactions)
         .values({
           user: userUid,
-          name: name,
-          amount: amount,
-          moneySource: moneySource,
+          name,
+          amount,
+          moneySource,
           category: 'INCOME',
           date: new Date().toISOString(),
         })
@@ -218,9 +239,9 @@ export const storeExpense = async (
         .insert(transactions)
         .values({
           user: userUid,
-          name: name,
-          amount: amount,
-          moneySource: moneySource,
+          name,
+          amount,
+          moneySource,
           category: 'EXPENSE',
           date: new Date().toISOString(),
         })
@@ -294,8 +315,8 @@ export const storeTransfer = async (
         .insert(transactions)
         .values({
           user: userUid,
-          name: name,
-          amount: amount,
+          name,
+          amount,
           moneySource: originMoneySource,
           transferDestination: destinationMoneySource,
           category: 'TRANSFER',
@@ -430,14 +451,241 @@ export const removeTransaction = async (
   }
 };
 
+export const editTransaction = async ({
+  userUid,
+  transactionUid,
+  date,
+  name,
+  amount,
+  category,
+  from,
+  to,
+}: EditTransactionPayload): Promise<void> => {
+  try {
+    const existingTransaction = await fetchSpecificTransaction(
+      userUid,
+      transactionUid
+    );
+
+    if (!existingTransaction) {
+      throw new NotFoundError('Transaction not found');
+    }
+    if (!from) {
+      throw new NotFoundError('Origin money source not found');
+    }
+    if (!category) {
+      throw new NotFoundError('Transaction category not found');
+    }
+
+    await db.transaction(async tx => {
+      const incomingSource = await getMoneySourceByUuidThroughTx(
+        tx,
+        from,
+        userUid
+      );
+
+      if (!incomingSource) {
+        throw new NotFoundError('Origin money source not found');
+      }
+
+      const isNoChangestoAmount =
+        existingTransaction.moneySource === from &&
+        new Decimal(amount).equals(new Decimal(existingTransaction.amount)) &&
+        existingTransaction.category === category;
+
+      const currentBalance = incomingSource?.amount;
+
+      ensuresAmountIsPositive(amount);
+
+      if (!isNoChangestoAmount) {
+        await adjustBalanceForTransactionEdit({
+          tx,
+          existingTransaction,
+          incomingTransaction: {
+            userUid,
+            transactionUid,
+            date,
+            name,
+            amount,
+            category,
+            from,
+            to,
+          },
+          currentBalance,
+        });
+      }
+
+      const updatedTransaction = await tx
+        .update(transactions)
+        .set({
+          date,
+          name,
+          category,
+          amount,
+          moneySource: from,
+          transferDestination: to,
+        })
+        .where(
+          and(
+            eq(transactions.uid, transactionUid),
+            eq(transactions.user, userUid)
+          )
+        );
+
+      return updatedTransaction;
+    });
+  } catch (error) {
+    logger.error(`Error editing transaction: ${error}`);
+    throw error;
+  }
+};
+
+const adjustBalanceForTransactionEdit = async ({
+  tx,
+  existingTransaction,
+  incomingTransaction,
+  currentBalance,
+}: AdjustBalanceParams): Promise<void> => {
+  switch (incomingTransaction.category) {
+    case 'INCOME':
+      ensuresItIsAfford(currentBalance, incomingTransaction.amount);
+
+      await undoTransaction(
+        tx,
+        existingTransaction,
+        incomingTransaction.userUid
+      );
+
+      await updateMoneySourceBalance(
+        tx,
+        incomingTransaction.userUid,
+        existingTransaction.moneySource,
+        existingTransaction.amount,
+        'add'
+      );
+
+      break;
+    case 'EXPENSE':
+      ensuresItIsAfford(currentBalance, incomingTransaction.amount);
+
+      await undoTransaction(
+        tx,
+        existingTransaction,
+        incomingTransaction.userUid
+      );
+
+      await updateMoneySourceBalance(
+        tx,
+        incomingTransaction.userUid,
+        incomingTransaction.from,
+        incomingTransaction.amount,
+        'subtract'
+      );
+
+      break;
+    case 'TRANSFER':
+      if (!incomingTransaction.to) {
+        throw new NotFoundError('Transfer destination not found');
+      }
+
+      ensuresItIsAfford(currentBalance, incomingTransaction.amount);
+      await undoTransaction(
+        tx,
+        existingTransaction,
+        incomingTransaction.userUid
+      );
+      await updateMoneySourceBalance(
+        tx,
+        incomingTransaction.userUid,
+        incomingTransaction.from,
+        incomingTransaction.amount,
+        'subtract'
+      );
+      await updateMoneySourceBalance(
+        tx,
+        incomingTransaction.userUid,
+        incomingTransaction.to,
+        incomingTransaction.amount,
+        'add'
+      );
+      break;
+  }
+};
+
+const undoTransaction = async (
+  tx: DatabaseTransaction,
+  existingTransaction: Transaction,
+  userUid: string
+): Promise<void> => {
+  switch (existingTransaction.category) {
+    case 'INCOME':
+      if (existingTransaction.moneySource) {
+        await updateMoneySourceBalance(
+          tx,
+          userUid,
+          existingTransaction.moneySource,
+          existingTransaction.amount,
+          'subtract'
+        );
+      }
+      break;
+    case 'EXPENSE':
+      if (existingTransaction.moneySource) {
+        await updateMoneySourceBalance(
+          tx,
+          userUid,
+          existingTransaction.moneySource,
+          existingTransaction.amount,
+          'add'
+        );
+      }
+      break;
+    case 'TRANSFER':
+      if (existingTransaction.moneySource) {
+        await updateMoneySourceBalance(
+          tx,
+          userUid,
+          existingTransaction.moneySource,
+          existingTransaction.amount,
+          'add'
+        );
+      }
+      if (existingTransaction.transferDestination) {
+        await updateMoneySourceBalance(
+          tx,
+          userUid,
+          existingTransaction.transferDestination,
+          existingTransaction.amount,
+          'subtract'
+        );
+      }
+      break;
+    default:
+      throw new NotFoundError('Unknown transaction category');
+  }
+};
+
 const ensuresAmountIsPositive = (amount: string): void => {
-  if (parseFloat(amount) <= 0) {
+  if (new Decimal(amount).lessThanOrEqualTo(new Decimal('0'))) {
     throw new ValueError('Amount must be greater than zero');
   }
 };
 
 const ensuresItIsAfford = (currentBalance: string, amount: string): void => {
-  if (parseFloat(currentBalance) < parseFloat(amount)) {
+  if (new Decimal(currentBalance).lessThan(new Decimal(amount))) {
     throw new ValueError('Insufficient funds in the origin money source');
   }
+};
+
+const fetchSpecificTransaction = async (
+  userUid: string,
+  transactionUid: string
+): Promise<Transaction | undefined> => {
+  const transaction = await db.query.transactions.findFirst({
+    where: {
+      user: userUid,
+      uid: transactionUid,
+    },
+  });
+  return transaction;
 };

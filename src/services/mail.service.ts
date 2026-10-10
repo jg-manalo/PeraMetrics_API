@@ -7,8 +7,8 @@ export const sendEmail = async (
 ): Promise<void> => {
   await resend.emails.send({
     from: `${process.env.RESEND_EMAIL_SENDER}`,
-    to: to,
-    subject: subject,
-    html: html,
+    to,
+    subject,
+    html,
   });
 };

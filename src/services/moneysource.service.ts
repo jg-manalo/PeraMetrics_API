@@ -8,6 +8,7 @@ import type { DataQuery } from '../types/queries.js';
 import { pagination, paginationResult } from '../utils/pagination.js';
 import { sortColumns } from '../utils/sortcolumns.js';
 import { inArray } from 'drizzle-orm';
+import { Decimal } from 'decimal.js';
 
 import {
   NotFoundError,
@@ -64,7 +65,7 @@ export const getMoneySourcesFromUser = async (
           [selectedColumn]: filters.direction === 'asc' ? 'asc' : 'desc',
         },
         limit: pageLimit,
-        offset: offset,
+        offset,
       }),
     ]);
     return paginationResult(
@@ -132,7 +133,7 @@ export const getMoneySourceByUuid = async (uid: string | null) => {
     }
     const moneySource = await db.query.moneySources.findFirst({
       where: {
-        uid: uid,
+        uid,
       },
     });
 
@@ -143,6 +144,29 @@ export const getMoneySourceByUuid = async (uid: string | null) => {
     return moneySource;
   } catch (error) {
     logger.error(`Error finding money source: ${error}`);
+    throw error;
+  }
+};
+
+export const getMoneySourceByUuidThroughTx = async (
+  tx: DatabaseTransaction,
+  uid: string | null,
+  userUid: string
+): Promise<MoneySource | undefined> => {
+  try {
+    if (!uid) {
+      throw new NotFoundError('uid is required to find money source');
+    }
+    const moneySource = await tx.query.moneySources.findFirst({
+      where: {
+        uid,
+        user: userUid,
+      },
+    });
+
+    return moneySource;
+  } catch (error) {
+    logger.error(`Error finding money source through transaction: ${error}`);
     throw error;
   }
 };
@@ -227,18 +251,27 @@ export const updateMoneySourceBalance = async (
 ): Promise<Partial<MoneySource> | undefined> => {
   try {
     if (!moneySource) {
+      throw new NotFoundError('Money source not given for balance update');
+    }
+    const source = await tx.query.moneySources.findFirst({
+      where: {
+        uid: moneySource,
+        user: userUid,
+      },
+    });
+
+    if (!source) {
       throw new NotFoundError('Money source not found');
     }
-    const source = await getMoneySourceByUuid(moneySource);
 
-    let totalAmount: number;
+    let totalAmount: Decimal;
 
     switch (operation) {
       case 'add':
-        totalAmount = parseFloat(source.amount) + parseFloat(amount);
+        totalAmount = new Decimal(source.amount).plus(new Decimal(amount));
         break;
       case 'subtract':
-        totalAmount = parseFloat(source.amount) - parseFloat(amount);
+        totalAmount = new Decimal(source.amount).minus(new Decimal(amount));
         break;
       default:
         throw new Error('Invalid operation');
@@ -247,7 +280,7 @@ export const updateMoneySourceBalance = async (
     const [updatedMoneySource] = await tx
       .update(moneySources)
       .set({
-        amount: totalAmount.toString(),
+        amount: new Decimal(totalAmount).toFixed(2),
         updatedAt: new Date(),
       })
       .where(

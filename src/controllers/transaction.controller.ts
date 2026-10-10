@@ -5,10 +5,10 @@ import {
   removeTransaction,
   fetchTransactions,
   generateReport,
+  editTransaction,
 } from '../services/transaction.service.js';
 import { reportResource } from '../resources/reports.resource.js';
 import { TransactionReportResource } from '../types/resources.js';
-import { transactionResource } from '../resources/transaction.resource.js';
 import { APIResponse } from '../types/api.js';
 import { BadRequestError } from '../errors/errors.js';
 import type { Transaction } from '../types/transaction.js';
@@ -27,7 +27,13 @@ type TransactionRequest<TParams extends ParamsDictionary> =
     TParams,
     Pick<
       Transaction,
-      'name' | 'amount' | 'moneySource' | 'uid' | 'transferDestination'
+      | 'name'
+      | 'amount'
+      | 'moneySource'
+      | 'uid'
+      | 'transferDestination'
+      | 'date'
+      | 'category'
     >,
     TransactionQuery
   >;
@@ -119,7 +125,7 @@ export const transactExpense = async (
 };
 
 export const transactTransfer = async (
-  req: TransactionRequest<{}>,
+  req: TransactionRequest<{ uid: string }>,
   res: APIResponse<TransactionTransferPayload>,
   next: NextFunction
 ): Promise<void> => {
@@ -138,6 +144,42 @@ export const transactTransfer = async (
     res.status(201).json({
       message: 'Transfer transaction created successfully',
       data: newTransfer,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const modifyTransaction = async (
+  req: TransactionRequest<{ uid: string }>,
+  res: APIResponse<void>,
+  next: NextFunction
+) => {
+  try {
+    const userUid = req.user.userUid;
+    const { uid } = req.params;
+    const {
+      name,
+      date,
+      amount,
+      moneySource: from,
+      transferDestination: to,
+      category,
+    } = req.body;
+
+    await editTransaction({
+      userUid,
+      transactionUid: uid,
+      name,
+      date,
+      amount,
+      from,
+      to,
+      category,
+    });
+
+    res.status(200).json({
+      message: 'Transaction modified successfully',
     });
   } catch (error) {
     next(error);

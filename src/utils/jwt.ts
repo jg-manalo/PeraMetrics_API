@@ -48,9 +48,9 @@ export const generateRefreshToken = (
     throw new NotFoundError('REFRESH_TOKEN_SECRET is not defined');
   }
   const payload = {
-    userUid: userUid,
-    jti: jti,
-    rememberMe: rememberMe,
+    userUid,
+    jti,
+    rememberMe,
   };
 
   const token = jwt.sign(payload, refreshTokenSecret, {
@@ -74,7 +74,7 @@ export const persistRefreshToken = async (
       email: user.email,
       name: user.name,
     },
-    tokenHash: tokenHash,
+    tokenHash,
   });
   await cache(`sessions:${user.uid}:${jti}`, payload, {
     EX: ttl,

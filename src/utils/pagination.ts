@@ -25,6 +25,6 @@ export const paginationResult = <T>(
     canNextPage:
       (currentPage ? currentPage < Math.ceil(rows / pageLimit) : true) &&
       Math.ceil(rows / pageLimit) > 1,
-    data: data,
+    data,
   };
 };

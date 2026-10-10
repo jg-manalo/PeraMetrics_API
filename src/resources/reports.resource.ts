@@ -24,9 +24,9 @@ export const reportResource = (
   );
 
   return {
-    totalIncome: totalIncome,
-    totalExpenses: totalExpenses,
-    savings: savings,
+    totalIncome,
+    totalExpenses,
+    savings,
     transactions: report.map(txn => ({
       date: txn.date,
       name: txn.name,
