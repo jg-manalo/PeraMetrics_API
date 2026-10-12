@@ -491,7 +491,8 @@ export const editTransaction = async ({
       const isNoChangestoAmount =
         existingTransaction.moneySource === from &&
         new Decimal(amount).equals(new Decimal(existingTransaction.amount)) &&
-        existingTransaction.category === category;
+        existingTransaction.category === category &&
+        existingTransaction?.transferDestination === to;
 
       const currentBalance = incomingSource?.amount;
 
@@ -559,8 +560,8 @@ const adjustBalanceForTransactionEdit = async ({
       await updateMoneySourceBalance(
         tx,
         incomingTransaction.userUid,
-        existingTransaction.moneySource,
-        existingTransaction.amount,
+        incomingTransaction.from,
+        incomingTransaction.amount,
         'add'
       );
 
@@ -594,6 +595,7 @@ const adjustBalanceForTransactionEdit = async ({
         existingTransaction,
         incomingTransaction.userUid
       );
+
       await updateMoneySourceBalance(
         tx,
         incomingTransaction.userUid,
@@ -601,6 +603,7 @@ const adjustBalanceForTransactionEdit = async ({
         incomingTransaction.amount,
         'subtract'
       );
+
       await updateMoneySourceBalance(
         tx,
         incomingTransaction.userUid,
