@@ -5,7 +5,7 @@ import { db } from '../src/config/database.js';
 
 // TODO: to be exported in the future and must reside in the login test file once the test suite is fully structured and organized.
 
-let user = {
+const user = {
   name: 'Automated Test User',
   email: 'test@resend.dev',
   password: 'password123',
@@ -13,7 +13,7 @@ let user = {
   userUid: '',
 };
 
-let snoopyUser = {
+const snoopyUser = {
   name: 'Snoopy Test User',
   email: 'snoopdogg@email.com',
   password: 'password123',
@@ -21,12 +21,12 @@ let snoopyUser = {
   userUid: '',
 };
 
-let money = {
+const money = {
   originSourceUid: '',
   destinationSourceUid: '',
 };
 
-let transaction = {
+const transaction = {
   income: '',
   expense: '',
   transfer: '',

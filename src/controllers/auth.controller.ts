@@ -305,7 +305,7 @@ const decodeRefreshToken = (token: string): string | jwt.JwtPayload => {
   try {
     const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
     return decoded;
-  } catch (error) {
+  } catch {
     throw new UnauthorizedError('Invalid or expired refresh token');
   }
 };

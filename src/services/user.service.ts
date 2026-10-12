@@ -9,11 +9,7 @@ import bcrypt from 'bcrypt';
 import logger from '../config/logger.js';
 
 export const hashPassword = async (password: string): Promise<string> => {
-  try {
-    return await bcrypt.hash(password, 10);
-  } catch (error) {
-    throw error;
-  }
+  return await bcrypt.hash(password, 10);
 };
 
 export const createUser = async (
@@ -24,7 +20,7 @@ export const createUser = async (
   try {
     const existingUser: User | undefined = await db.query.users.findFirst({
       where: {
-        email: email,
+        email,
       },
     });
 
@@ -50,7 +46,7 @@ export const createUser = async (
 
     return newUser;
   } catch (error) {
-    logger.error(`Error creating user:`, error);
+    logger.error('Error creating user:', error);
     throw error;
   }
 };
@@ -108,7 +104,7 @@ export const findUserByEmail = async (email: string): Promise<User> => {
   try {
     const user: User | undefined = await db.query.users.findFirst({
       where: {
-        email: email,
+        email,
       },
     });
 

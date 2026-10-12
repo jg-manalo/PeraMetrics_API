@@ -3,7 +3,7 @@ import {
   removeUser,
   updateUserInfo,
 } from '../services/user.service.js';
-import type { Request, NextFunction } from 'express';
+import type { NextFunction } from 'express';
 import type { User } from '../types/user.js';
 import type { APIResponse } from '../types/api.js';
 import type { AuthenticatedRequest } from '../types/api.js';

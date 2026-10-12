@@ -14,9 +14,9 @@ import jwt from 'jsonwebtoken';
 
 export const errorHandler = (
   err: unknown,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
   if (err instanceof UnauthorizedError) {
     res.status(err.statusCode).json({ message: err.message });
