@@ -154,7 +154,7 @@ export const modifyTransaction = async (
   req: TransactionRequest<{ uid: string }>,
   res: APIResponse<void>,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const userUid = req.user.userUid;
     const { uid } = req.params;
