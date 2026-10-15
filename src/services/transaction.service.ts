@@ -559,8 +559,6 @@ export const bulkDeleteTransactions = async (
           and(eq(transactions.user, userUid), inArray(transactions.uid, uids))
         );
 
-      // FIXME: this is the problematic part, breaking transaction chain
-
       for (const transaction of existingTransactions) {
         await undoTransaction(tx, transaction, userUid);
       }

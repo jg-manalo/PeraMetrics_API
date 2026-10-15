@@ -39,5 +39,4 @@ router.post(
 router.put('/:uid', verifyToken, modifyTransaction);
 router.delete('/bulk-delete', verifyToken, multiDeleteTransactions);
 router.delete('/delete/:uid', verifyToken, deleteTransaction);
-
 export default router;

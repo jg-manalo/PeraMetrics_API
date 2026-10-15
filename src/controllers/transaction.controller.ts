@@ -128,7 +128,7 @@ export const transactExpense = async (
 };
 
 export const transactTransfer = async (
-  req: TransactionRequest<{}>,
+  req: TransactionRequest<{ uid: string }>,
   res: APIResponse<TransactionTransferPayload>,
   next: NextFunction
 ): Promise<void> => {
