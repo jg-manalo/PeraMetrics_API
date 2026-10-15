@@ -1,6 +1,6 @@
 import { db } from '../config/database.js';
 import { transactions } from '../models/transactions.js';
-import { eq, and, asc, desc } from 'drizzle-orm';
+import { eq, and, asc, desc, inArray } from 'drizzle-orm';
 import {
   updateMoneySourceBalance,
   getMoneySourceByUuid,
@@ -280,6 +280,7 @@ export const storeTransfer = async (
       const originBalance = (await getMoneySourceByUuid(originMoneySource))
         .amount;
 
+      console.log('Destination source', destinationMoneySource);
       if (!destinationMoneySource) {
         throw new NotFoundError('Transfer destination not found');
       }
@@ -537,6 +538,39 @@ export const editTransaction = async ({
     });
   } catch (error) {
     logger.error(`Error editing transaction: ${error}`);
+    throw error;
+  }
+};
+
+export const bulkDeleteTransactions = async (
+  uids: string[],
+  userUid: string
+): Promise<void> => {
+  try {
+    if (uids.length === 0) {
+      throw new ValueError('No money source UIDs provided for deletion');
+    }
+
+    await db.transaction(async tx => {
+      const existingTransactions = await tx
+        .select()
+        .from(transactions)
+        .where(
+          and(eq(transactions.user, userUid), inArray(transactions.uid, uids))
+        );
+
+      for (const transaction of existingTransactions) {
+        await undoTransaction(tx, transaction, userUid);
+      }
+
+      await tx
+        .delete(transactions)
+        .where(
+          and(eq(transactions.user, userUid), inArray(transactions.uid, uids))
+        );
+    });
+  } catch (error) {
+    logger.error(`Error bulk deleting money sources: ${error}`);
     throw error;
   }
 };

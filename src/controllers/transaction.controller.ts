@@ -6,11 +6,12 @@ import {
   fetchTransactions,
   generateReport,
   editTransaction,
+  bulkDeleteTransactions,
 } from '../services/transaction.service.js';
 import { reportResource } from '../resources/reports.resource.js';
 import { TransactionReportResource } from '../types/resources.js';
 import { APIResponse } from '../types/api.js';
-import { BadRequestError } from '../errors/errors.js';
+import { BadRequestError, NotFoundError } from '../errors/errors.js';
 import type { Transaction } from '../types/transaction.js';
 import type { NextFunction } from 'express';
 import type { AuthenticatedRequest } from '../types/api.js';
@@ -34,7 +35,9 @@ type TransactionRequest<TParams extends ParamsDictionary> =
       | 'transferDestination'
       | 'date'
       | 'category'
-    >,
+    > & {
+      uids: string[];
+    },
     TransactionQuery
   >;
 
@@ -199,6 +202,29 @@ export const deleteTransaction = async (
 
     res.status(200).json({
       message: 'Transaction deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const multiDeleteTransactions = async (
+  req: TransactionRequest<{}>,
+  res: APIResponse<Partial<Transaction> | undefined>,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { uids } = req.body;
+    const userUid = req.user.userUid;
+
+    if (!uids) {
+      throw new NotFoundError('No transaction uids provided for deletion');
+    }
+
+    await bulkDeleteTransactions(uids, userUid);
+
+    res.status(200).json({
+      message: 'Multiple transactions deleted successfully',
     });
   } catch (error) {
     next(error);
