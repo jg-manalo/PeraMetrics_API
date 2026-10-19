@@ -583,8 +583,6 @@ const adjustBalanceForTransactionEdit = async ({
 }: AdjustBalanceParams): Promise<void> => {
   switch (incomingTransaction.category) {
     case 'INCOME':
-      ensuresItIsAfford(currentBalance, incomingTransaction.amount);
-
       await undoTransaction(
         tx,
         existingTransaction,
