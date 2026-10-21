@@ -7,7 +7,8 @@ export const transactionValidation = z.object({
     .min(1, { message: 'Date is required' })
     .regex(/^\d{4}-\d{2}-\d{2}$/, {
       message: 'Date must be in YYYY-MM-DD format',
-    }),
+    })
+    .optional(),
   amount: z
     .string()
     .trim()

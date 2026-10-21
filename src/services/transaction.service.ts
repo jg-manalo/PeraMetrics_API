@@ -167,7 +167,7 @@ export const generateReport = async (
 export const storeIncome = async (
   userUid: string,
   name: string,
-  date: string,
+  date: string | null,
   amount: string,
   moneySource: string | null
 ): Promise<MoneyInOutPayload> => {
@@ -191,7 +191,7 @@ export const storeIncome = async (
           amount,
           moneySource,
           category: 'INCOME',
-          date: date,
+          date: date ?? new Date().toISOString(),
         })
         .returning({
           id: transactions.id,
@@ -218,7 +218,7 @@ export const storeIncome = async (
 export const storeExpense = async (
   userUid: string,
   name: string,
-  date: string,
+  date: string | null,
   amount: string,
   moneySource: string | null
 ): Promise<MoneyInOutPayload> => {
@@ -245,7 +245,7 @@ export const storeExpense = async (
           amount,
           moneySource,
           category: 'EXPENSE',
-          date: date,
+          date: date ?? new Date().toISOString(),
         })
         .returning({
           id: transactions.id,
@@ -273,7 +273,7 @@ export const storeExpense = async (
 export const storeTransfer = async (
   userUid: string,
   name: string,
-  date: string,
+  date: string | null,
   amount: string,
   originMoneySource: string | null,
   destinationMoneySource: string | undefined | null
@@ -324,7 +324,7 @@ export const storeTransfer = async (
           moneySource: originMoneySource,
           transferDestination: destinationMoneySource,
           category: 'TRANSFER',
-          date: date,
+          date: date ?? new Date().toISOString(),
         })
         .returning({
           uid: transactions.uid,
