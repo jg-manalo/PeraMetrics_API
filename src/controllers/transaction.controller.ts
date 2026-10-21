@@ -92,11 +92,17 @@ export const transactIncome = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { name, amount, moneySource } = req.body;
+    const { name, amount, moneySource, date } = req.body;
 
     const userUid = req.user.userUid;
 
-    const newIncome = await storeIncome(userUid, name, amount, moneySource);
+    const newIncome = await storeIncome(
+      userUid,
+      name,
+      date,
+      amount,
+      moneySource
+    );
 
     res.status(201).json({
       message: 'Income transaction created successfully',
@@ -114,9 +120,15 @@ export const transactExpense = async (
 ): Promise<void> => {
   try {
     const userUid = req.user.userUid;
-    const { name, amount, moneySource } = req.body;
+    const { name, amount, moneySource, date } = req.body;
 
-    const newExpense = await storeExpense(userUid, name, amount, moneySource);
+    const newExpense = await storeExpense(
+      userUid,
+      name,
+      date,
+      amount,
+      moneySource
+    );
 
     res.status(201).json({
       message: 'Expense transaction created successfully',
@@ -134,11 +146,12 @@ export const transactTransfer = async (
 ): Promise<void> => {
   try {
     const userUid = req.user.userUid;
-    const { name, amount, moneySource, transferDestination } = req.body;
+    const { name, amount, moneySource, transferDestination, date } = req.body;
 
     const newTransfer: TransactionTransferPayload = await storeTransfer(
       userUid,
       name,
+      date,
       amount,
       moneySource,
       transferDestination
