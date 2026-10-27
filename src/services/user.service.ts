@@ -142,6 +142,10 @@ export const findUserByUuid = async (
               ).toISOString(),
             },
           },
+          orderBy: {
+            date: 'desc',
+            id: 'desc',
+          },
         },
       },
     });

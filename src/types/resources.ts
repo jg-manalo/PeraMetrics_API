@@ -14,8 +14,6 @@ export type UserResource = Omit<User, 'password' | 'id'> & {
 };
 
 export type TransactionReportResource = {
-  totalIncome: string;
-  totalExpenses: string;
   savings: string;
   transactions: Partial<Transaction>[];
 };

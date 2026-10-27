@@ -45,12 +45,12 @@ export const userResource = (
     expenses: totals.expenses.toNumber(),
     income: totals.income.toNumber(),
     transfers: totals.transfers.toNumber(),
-    recentTransactions:
-      user.transactions
-        ?.slice(-5)
-        .sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        ) || [],
+    recentTransactions: user.transactions?.slice(0, 5) || [],
+    // user.transactions
+    //   ?.slice(-5)
+    //   .sort(
+    //     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    //   ) || [],
     netBalance: totals.netBalance().toNumber(),
   };
 };

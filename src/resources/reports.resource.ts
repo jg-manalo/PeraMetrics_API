@@ -1,39 +1,27 @@
 import type { Transaction } from '../types/transaction.js';
 import type { TransactionReportResource } from '../types/resources.js';
-
-export type TransactionReportLazyLoad = Transaction & {
-  source: { name: string } | null;
-  transferTo?: { name: string } | null;
-};
+import { Decimal } from 'decimal.js';
 
 export const reportResource = (
-  report: TransactionReportLazyLoad[]
+  report: Transaction[]
 ): TransactionReportResource => {
   const totalIncome = report
     .filter(txn => txn.category === 'INCOME')
-    .reduce((sum, txn) => sum + parseFloat(txn.amount), 0)
-    .toFixed(2);
+    .reduce((sum, txn) => sum.plus(txn.amount), new Decimal(0));
 
   const totalExpenses = report
     .filter(txn => txn.category === 'EXPENSE')
-    .reduce((sum, txn) => sum + parseFloat(txn.amount), 0)
-    .toFixed(2);
+    .reduce((sum, txn) => sum.plus(txn.amount), new Decimal(0));
 
-  const savings = (parseFloat(totalIncome) - parseFloat(totalExpenses)).toFixed(
-    2
-  );
+  const savings = totalIncome.minus(totalExpenses);
 
   return {
-    totalIncome,
-    totalExpenses,
-    savings,
+    savings: savings.toFixed(2),
     transactions: report.map(txn => ({
+      uid: txn.uid,
       date: txn.date,
       name: txn.name,
-      amount: txn.amount.toString(),
-      category: txn.category,
-      origin: txn.source?.name,
-      destination: txn.transferTo?.name ?? null,
+      amount: new Decimal(txn.amount).toFixed(2),
     })),
   };
 };
