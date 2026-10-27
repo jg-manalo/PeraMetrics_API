@@ -63,6 +63,7 @@ export const getMoneySourcesFromUser = async (
         },
         orderBy: {
           [selectedColumn]: filters.direction === 'asc' ? 'asc' : 'desc',
+          id: filters.direction === 'asc' ? 'asc' : 'desc',
         },
         limit: pageLimit,
         offset,

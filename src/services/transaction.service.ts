@@ -23,16 +23,6 @@ import { PaginatedData } from '../types/api.js';
 import { Decimal } from 'decimal.js';
 import { DatabaseTransaction } from '../types/databasetransaction.js';
 
-type TransactionReport = Transaction & {
-  source: {
-    name: string;
-  } | null;
-
-  transferTo: {
-    name: string;
-  } | null;
-};
-
 type EditTransactionPayload = {
   userUid: string;
   transactionUid: string;
@@ -105,7 +95,7 @@ export const fetchTransactions = async (
           eq(transactions.transferDestination, destinationSource.uid)
         )
         .where(eq(transactions.user, userUid))
-        .orderBy(orderFn(selectedColumn))
+        .orderBy(orderFn(selectedColumn), orderFn(transactions.id))
         .limit(pageLimit)
         .offset(offset),
     ]);
@@ -126,7 +116,7 @@ export const generateReport = async (
   userUid: string,
   startDate: string,
   endDate: string
-): Promise<TransactionReport[]> => {
+): Promise<Transaction[]> => {
   try {
     const report = await db.query.transactions.findMany({
       where: {
@@ -137,19 +127,8 @@ export const generateReport = async (
         },
       },
       orderBy: {
-        date: 'desc',
-      },
-      with: {
-        source: {
-          columns: {
-            name: true,
-          },
-        },
-        transferTo: {
-          columns: {
-            name: true,
-          },
-        },
+        date: 'asc',
+        id: 'asc',
       },
     });
 
