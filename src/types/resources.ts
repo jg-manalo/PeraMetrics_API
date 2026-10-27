@@ -15,7 +15,10 @@ export type UserResource = Omit<User, 'password' | 'id'> & {
 
 export type TransactionReportResource = {
   savings: string;
-  transactions: Partial<Transaction>[];
+  transactions: {
+    income: Record<string, string>;
+    expense: Record<string, string>;
+  };
 };
 
 export type TransactionResource = {

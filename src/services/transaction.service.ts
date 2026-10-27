@@ -116,15 +116,16 @@ export const generateReport = async (
   userUid: string,
   startDate: string,
   endDate: string
-): Promise<Transaction[]> => {
+): Promise<{ incomeRawData: Transaction[]; expenseRawData: Transaction[] }> => {
   try {
-    const report = await db.query.transactions.findMany({
+    const reportIncome = await db.query.transactions.findMany({
       where: {
         user: userUid,
         date: {
           gte: new Date(startDate).toISOString(),
           lte: new Date(endDate).toISOString(),
         },
+        category: 'INCOME',
       },
       orderBy: {
         date: 'asc',
@@ -132,11 +133,29 @@ export const generateReport = async (
       },
     });
 
-    if (report.length === 0) {
+    const reportExpense = await db.query.transactions.findMany({
+      where: {
+        user: userUid,
+        date: {
+          gte: new Date(startDate).toISOString(),
+          lte: new Date(endDate).toISOString(),
+        },
+        category: 'EXPENSE',
+      },
+      orderBy: {
+        date: 'asc',
+        id: 'asc',
+      },
+    });
+
+    if (reportIncome.length === 0 || reportExpense.length === 0) {
       throw new NotFoundError('No transactions found for the specified period');
     }
 
-    return report;
+    return {
+      incomeRawData: reportIncome,
+      expenseRawData: reportExpense,
+    };
   } catch (error) {
     logger.error(`Error generating transaction report: ${error}`);
     throw error;
