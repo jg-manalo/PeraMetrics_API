@@ -148,8 +148,11 @@ export const generateReport = async (
       },
     });
 
-    if (reportIncome.length === 0 || reportExpense.length === 0) {
-      throw new NotFoundError('No transactions found for the specified period');
+    if (reportIncome.length === 0 && reportExpense.length === 0) {
+      return {
+        incomeRawData: [],
+        expenseRawData: [],
+      };
     }
 
     return {
