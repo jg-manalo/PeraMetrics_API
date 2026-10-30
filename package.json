@@ -23,7 +23,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx ./src/db/seed.ts",
-    "db:seed:money-sources": "tsx ./src/db/money-sources-seed.ts"
+    "db:seed:money-sources": "tsx ./src/db/money-sources-seed.ts",
+    "db:seed:subscriptions": "tsx ./src/db/subscriptions-seed.ts"
   },
   "repository": {
     "type": "git",
