@@ -48,7 +48,7 @@ const seedSubscriptions = async (): Promise<void> => {
       user: firstUser.uid,
       startDate: faker.date.past({ years: 1 }),
       amount: faker.finance.amount({ min: 5, max: 100, dec: 2 }),
-      duration: durations[i % durations.length],
+      duration: durations[i % durations.length] ?? 'MONTHLY',
       moneySource: firstMoneySource.uid,
     });
   }
