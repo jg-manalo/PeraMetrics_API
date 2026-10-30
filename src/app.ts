@@ -5,7 +5,6 @@ import authRoutes from './routes/auth.route.js';
 import userRoutes from './routes/user.route.js';
 import moneysourceRoutes from './routes/moneysource.route.js';
 import transactionRoutes from './routes/transaction.route.js';
-import subscriptionRoutes from './routes/subscription.route.js';
 import limiter from './middlewares/limiter.js';
 import { errorHandler } from './middlewares/error.handler.js';
 import cookieParser from 'cookie-parser';
@@ -45,7 +44,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/moneysources', moneysourceRoutes);
 app.use('/api/transactions', transactionRoutes);
-app.use('/api/subscriptions', subscriptionRoutes);
 
 app.use(errorHandler);
 
