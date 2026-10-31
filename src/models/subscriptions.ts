@@ -6,6 +6,7 @@ import {
   decimal,
   timestamp,
   pgEnum,
+  date,
 } from 'drizzle-orm/pg-core';
 import { users } from './users.js';
 import { moneySources } from './moneysources.js';
@@ -25,7 +26,7 @@ export const subscriptions = pgTable('subscriptions', {
   user: uuid('user')
     .notNull()
     .references(() => users.uid, { onDelete: 'cascade' }),
-  startDate: timestamp('startDate').notNull().defaultNow(),
+  startDate: date('startDate').notNull(),
   amount: decimal('amount', { precision: 18, scale: 2 }).default('0').notNull(),
   duration: durationEnum('duration').notNull(),
   moneySource: uuid('moneySource').references(() => moneySources.uid, {
