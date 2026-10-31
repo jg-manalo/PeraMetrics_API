@@ -6,7 +6,7 @@ export type Subscription = {
   user: string;
   moneySource: string | null;
   duration: 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUAL' | 'BIENNIAL';
-  startDate: Date;
+  startDate: string;
   createdAt?: Date;
   updatedAt?: Date;
 };
