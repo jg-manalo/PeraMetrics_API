@@ -19,10 +19,8 @@ import { sortColumnsViaSQLJoin } from '../utils/sortcolumns.js';
 
 type SubscriptionInput = Pick<
   Subscription,
-  'name' | 'amount' | 'duration' | 'moneySource'
-> & {
-  startDate: string | Date;
-};
+  'name' | 'amount' | 'duration' | 'moneySource' | 'startDate'
+>;
 
 const subscriptionFields = {
   id: subscriptions.id,
@@ -132,7 +130,7 @@ export const generateSubscription = async (
       .values({
         name,
         user: userUid,
-        startDate: new Date(input.startDate),
+        startDate: input.startDate,
         amount: input.amount,
         duration: input.duration,
         moneySource: input.moneySource,
@@ -180,7 +178,7 @@ export const editSubscription = async (
       .update(subscriptions)
       .set({
         name,
-        startDate: new Date(input.startDate),
+        startDate: input.startDate,
         amount: input.amount,
         duration: input.duration,
         moneySource: input.moneySource,
