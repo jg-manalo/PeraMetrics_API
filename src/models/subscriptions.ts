@@ -12,11 +12,11 @@ import { users } from './users.js';
 import { moneySources } from './moneysources.js';
 
 export const durationEnum = pgEnum('duration', [
-  'WEEKLY',
-  'MONTHLY',
-  'QUARTERLY',
   'ANNUAL',
   'BIENNIAL',
+  'MONTHLY',
+  'QUARTERLY',
+  'WEEKLY',
 ]);
 
 export const subscriptions = pgTable('subscriptions', {
