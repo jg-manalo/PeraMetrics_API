@@ -54,7 +54,7 @@ export const getSubscriptionsFromUser = async (
     const selectedColumn = sortColumnsViaSQLJoin(
       sortableColumns,
       filters,
-      subscriptions.createdAt
+      subscriptions.startDate
     );
 
     if (!selectedColumn) {
