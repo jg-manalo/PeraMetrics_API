@@ -69,7 +69,11 @@ export const updateUserInfo = async (
     }
 
     if (email) {
-      const emailExists = await findUserByEmail(email);
+      const emailExists = await db.query.users.findFirst({
+        where: {
+          email,
+        },
+      });
 
       if (emailExists && emailExists.uid !== uuid) {
         throw new DuplicateError('Email already in use by another user');
@@ -109,7 +113,7 @@ export const findUserByEmail = async (email: string): Promise<User> => {
     });
 
     if (!user) {
-      throw new NotFoundError('User not found');
+      throw new NotFoundError('User having this email not found');
     }
 
     return user;
