@@ -165,6 +165,27 @@ export const findUserByUuid = async (
   }
 };
 
+export const getUserCredentials = async (
+  uid: string
+): Promise<Pick<User, 'name' | 'email' | 'uid'>> => {
+  try {
+    const user = await findUserByUuid(uid);
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    return {
+      uid: user.uid,
+      name: user.name,
+      email: user.email,
+    };
+  } catch (error) {
+    logger.error(`Error getting user credentials for uid ${uid}:`, error);
+    throw error;
+  }
+};
+
 export const removeUser = async (uuid: string): Promise<void> => {
   try {
     await findUserByUuid(uuid);

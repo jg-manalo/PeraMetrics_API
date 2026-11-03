@@ -35,6 +35,35 @@ export const getUserByUuid = async (
   }
 };
 
+export const fetchUserCredentials = async (
+  req: UserRequest<{}>,
+  res: APIResponse<Pick<User, 'name' | 'email' | 'uid'>>,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const uid = req.user.userUid;
+    const user = await findUserByUuid(uid);
+
+    if (!user) {
+      res.status(404).json({
+        message: 'User not found',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: 'User credentials retrieved successfully',
+      data: {
+        uid: user.uid,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const updateUser = async (
   req: UserRequest<{ uid: string }>,
   res: APIResponse<Partial<User>>,
