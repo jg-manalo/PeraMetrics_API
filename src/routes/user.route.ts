@@ -2,6 +2,7 @@ import {
   deleteUser,
   getUserByUuid,
   updateUser,
+  fetchUserCredentials,
 } from '../controllers/user.controller.js';
 import { verifyToken } from '../middlewares/verify.token.js';
 import { checkAuthorizationForUserCredentials } from '../middlewares/check.authorization.js';
@@ -12,6 +13,7 @@ import express from 'express';
 const router = express.Router();
 
 router.get('/me', verifyToken, getUserByUuid);
+router.get('/credentials', verifyToken, fetchUserCredentials);
 router.put(
   '/:uid',
   verifyToken,
