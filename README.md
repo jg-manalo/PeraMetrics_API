@@ -402,10 +402,7 @@ Bulk-delete request payloads use the same structure for each resource:
 
 ```json
 {
-  "uids": [
-    "<resource_uid_1>",
-    "<resource_uid_2>"
-  ]
+  "uids": ["<resource_uid_1>", "<resource_uid_2>"]
 }
 ```
 
