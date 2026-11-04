@@ -147,6 +147,12 @@ Authorization: Bearer <token>
 
 The token is returned by the login route.
 
+For authenticated requests, send the access token as:
+
+```http
+Authorization: Bearer <access_token>
+```
+
 ## Routes
 
 ### Health check
@@ -359,7 +365,8 @@ Request body:
   "name": "Transfer to Savings",
   "amount": "500.00",
   "moneySource": "source_money_source_uid",
-  "transferDestination": "destination_money_source_uid"
+  "destinationMoneySource": "<destination_money_source_uid>",
+  "date": "2026-08-01"
 }
 ```
 
@@ -368,6 +375,64 @@ Request body:
 ```http
 DELETE /api/transactions/delete/:uid
 ```
+
+## Current route additions
+
+### Additional routes
+
+The current API also exposes:
+
+- `GET /api/auth/me`
+- `POST /api/auth/refresh`
+- `POST /api/auth/logout`
+- `GET /api/users/me`
+- `GET /api/users/credentials`
+- `GET /api/moneysources`
+- `GET /api/moneysources/input`
+- `DELETE /api/moneysources/bulk-delete`
+- `PUT /api/transactions/:uid`
+- `DELETE /api/transactions/bulk-delete`
+- `GET /api/subscriptions`
+- `POST /api/subscriptions`
+- `PUT /api/subscriptions/:uid`
+- `DELETE /api/subscriptions/:uid`
+- `DELETE /api/subscriptions/bulk-delete`
+
+Bulk-delete request payloads use the same structure for each resource:
+
+```json
+{
+  "uids": ["<resource_uid_1>", "<resource_uid_2>"]
+}
+```
+
+Transaction update payload:
+
+```json
+{
+  "name": "Updated transaction",
+  "amount": "525.00",
+  "moneySource": "<source_money_source_uid>",
+  "destinationMoneySource": "<destination_money_source_uid>",
+  "date": "2026-08-02",
+  "category": "transfer"
+}
+```
+
+Subscription request example:
+
+```json
+{
+  "name": "NETFLIX",
+  "amount": "15.99",
+  "startDate": "2026-11-01",
+  "duration": "MONTHLY",
+  "moneySource": "<money_source_uid>"
+}
+```
+
+Valid subscription durations are `WEEKLY`, `MONTHLY`, `QUARTERLY`, `ANNUAL`,
+and `BIENNIAL`.
 
 ## Example workflow
 
